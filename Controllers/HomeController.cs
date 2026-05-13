@@ -15,6 +15,8 @@ namespace FavouriteBookstore.Controllers
 
         public IActionResult Index()
         {
+            ViewData["BookstoreSystemText"] = BookstoreSystem.Instance.ToString();
+
             return View();
         }
 

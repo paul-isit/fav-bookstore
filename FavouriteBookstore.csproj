@@ -6,4 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Content Include="Controllers\favicon.ico" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,6 @@
 ﻿namespace FavouriteBookstore.Models
 {
-    public class Customer : IShopoper, User
+    public class Customer : User, IShopper
     {
         private ShoppingCart shoppingCart;
 

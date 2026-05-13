@@ -18,5 +18,10 @@
                 return instance;
             }
         }
+
+        public override string ToString()
+        {
+            return "Favourite Books Online Bookstore System is running";
+        }
     }
 }
