@@ -1,12 +1,25 @@
-﻿namespace FavouriteBookstore.Models
-{
-    public class Customer : User, IShopper
-    {
-        private ShoppingCart shoppingCart;
+﻿using System;
 
-        public ShoppingCart GetCart()
+namespace FavouriteBookstore.Models
+{
+    public class Customer : User
+    {
+        // Registered shoppers maintain a dedicated, persistent cart link
+        public ShoppingCart Cart { get; private set; }
+
+        public Customer() : base() 
         {
-            return shoppingCart;
+            Role = "Customer";
+            Cart = new ShoppingCart();
+        }
+
+        public Customer(string email, string password, string name)
+        {
+            Email = email;
+            PasswordHash = password;
+            Name = name;
+            Role = "Customer";
+            Cart = new ShoppingCart();
         }
     }
 }
