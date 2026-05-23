@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using FavouriteBookstore.Models;
+using FavouriteBookstore.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FavouriteBookstore.Controllers

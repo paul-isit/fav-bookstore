@@ -10,4 +10,10 @@
     <Content Include="Controllers\favicon.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+  <None Update="Infrastructure\data\*.json">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+  </ItemGroup>
+
 </Project>

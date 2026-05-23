@@ -1,0 +1,29 @@
+[
+  {
+    "Id": "B01",
+    "Price": 34.95,
+    "Stock": 12,
+    "Title": "The Art of Layering",
+    "Author": "Jeremy Allan",
+    "Genre": "Software Engineering",
+    "Publisher": "Swinburne Academic Press"
+  },
+  {
+    "Id": "B02",
+    "Price": 59.99,
+    "Stock": 4,
+    "Title": "Decoupled Web Architectures",
+    "Author": "Justin Chen",
+    "Genre": "Computer Science",
+    "Publisher": "Glenferrie Technical Publishing"
+  },
+  {
+    "Id": "B03",
+    "Price": 45.00,
+    "Stock": 25,
+    "Title": "Single Responsibility Guidebook",
+    "Author": "Pulkit Pannu",
+    "Genre": "Design Patterns",
+    "Publisher": "Swinsoft Press"
+  }
+]
