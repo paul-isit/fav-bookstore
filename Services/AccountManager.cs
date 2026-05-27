@@ -1,4 +1,3 @@
-using System;
 using FavouriteBookstore.Models;
 using FavouriteBookstore.Data;
 
@@ -23,6 +22,12 @@ namespace FavouriteBookstore.Services
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(name))
             {
                 throw new ArgumentException("Registration attributes cannot be blank to satisfy data consistency constraints.");
+            }
+            
+            // Prevent duplicate registration explicitly here before trying to save
+            if (_db.GetUserByEmail(email) != null)
+            {
+                return false;
             }
 
             // Utilize your Factory Method inside the User class to instantiate profiles dynamically
@@ -55,7 +60,10 @@ namespace FavouriteBookstore.Services
         {
             if (CurrentSessionUser != null)
             {
-                Console.WriteLine($"[Session] User {CurrentSessionUser.Email} logged out.");
+                // Sync session user state back to DB right before logout
+                _db.SaveUser(CurrentSessionUser);
+                
+                Console.WriteLine($"[Session] User {CurrentSessionUser.Email} logged out and state saved.");
                 CurrentSessionUser = null;
             }
         }

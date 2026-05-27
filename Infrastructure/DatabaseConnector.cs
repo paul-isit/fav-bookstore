@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Text.Json;
+﻿using System.Text.Json;
 using FavouriteBookstore.Models;
 
 namespace FavouriteBookstore.Data
@@ -93,13 +90,20 @@ namespace FavouriteBookstore.Data
                         ? new List<User>() 
                         : JsonSerializer.Deserialize<List<User>>(jsonString) ?? new List<User>();
 
-                    // Prevent duplicate email registrations
-                    if (users.Exists(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase)))
+                    // Check if user already exists
+                    int existingIndex = users.FindIndex(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (existingIndex >= 0)
                     {
-                        return false; 
+                        // Update existing user
+                        users[existingIndex] = user;
+                    }
+                    else
+                    {
+                        // Add new user
+                        users.Add(user);
                     }
 
-                    users.Add(user);
                     string updatedJson = JsonSerializer.Serialize(users, new JsonSerializerOptions { WriteIndented = true });
                     File.WriteAllText(_usersFilePath, updatedJson);
                     return true;
