@@ -4,7 +4,7 @@
     {
         private List<Book> books = new();
 
-        public void AddBook(Book book)
+        public void RegisterBook(Book book)
         {
             if (book == null)
             {
@@ -14,7 +14,7 @@
             {
                 throw new InvalidOperationException("This book already exists in the catalogue.");
             }
-            
+
             books.Add(book);
         }
 
@@ -33,8 +33,14 @@
         public List<Book> SearchByTitle(string searchText)
         {
             List<Book> queryResults = new List<Book>();
-            
-            //TODO:
+
+            foreach (Book book in books)
+            {
+                if (book.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    queryResults.Add(book);
+                }
+            }
 
             return queryResults;
         }
@@ -42,8 +48,14 @@
         public List<Book> SearchByAuthor(string searchText)
         {
             List<Book> queryResults = new List<Book>();
-            
-            //TODO:
+
+            foreach (Book book in books)
+            {
+                if (book.Author.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    queryResults.Add(book);
+                }
+            }
 
             return queryResults;
         }
@@ -51,8 +63,14 @@
         public List<Book> FilterByGenre(string genre)
         {
             List<Book> filterResults = new List<Book>();
-            
-            //TODO:
+
+            foreach (Book book in books)
+            {
+                if (book.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase))
+                {
+                    filterResults.Add(book);
+                }
+            }
 
             return filterResults;
         }
