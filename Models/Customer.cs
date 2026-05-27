@@ -1,10 +1,11 @@
-﻿using System;
+﻿using System.Text.Json.Serialization;
 
 namespace FavouriteBookstore.Models
 {
-    public class Customer : User
+    public class Customer : User, IShopper
     {
         // Registered shoppers maintain a dedicated, persistent cart link
+        [JsonInclude]
         public ShoppingCart Cart { get; private set; }
 
         public Customer() : base() 
@@ -20,6 +21,11 @@ namespace FavouriteBookstore.Models
             Name = name;
             Role = "Customer";
             Cart = new ShoppingCart();
+        }
+
+        public ShoppingCart GetCart()
+        {
+            return Cart;
         }
     }
 }
