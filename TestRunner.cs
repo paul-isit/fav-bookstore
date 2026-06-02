@@ -144,9 +144,38 @@ namespace FavouriteBookstore
                 newOrder.PrintOrderDetails(); 
                 Console.WriteLine($"\nOrder Initial Status - Paid: {newOrder.IsPaid}\n");
 
-                Console.WriteLine("[Test 4F] Processing Checkout with DummyPayment Strategy...");
-                PaymentMethod dummyPayment = new DummyPayment();
-                Invoice? generatedInvoice = newOrder.ProcessCheckout(dummyPayment);
+                Console.WriteLine("[Test 4F-1] Verifying Shipping Address Validation (Throws Exception if missing)...");
+                try
+                {
+                    PaymentMethod dummyPayment = new DummyPayment();
+                    newOrder.ProcessCheckout(dummyPayment);
+                    Console.WriteLine("[Flaw] Allowed checkout without address!");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Console.WriteLine($"[Validation Success] Exception caught correctly: {ex.Message}\n");
+                }
+
+                Console.WriteLine("[Test 4F-2] Setting valid Shipping Address details...");
+                Address validAddress = new Address
+                {
+                    Street = "123 Glenferrie Road",
+                    Suburb = "Hawthorn",
+                    State = "VIC",
+                    Postcode = "3122"
+                };
+                newOrder.ShippingAddress = validAddress;
+                Console.WriteLine($"Shipping Address registered: {newOrder.ShippingAddress}\n");
+
+                Console.WriteLine("[Test 4F-3] Processing Checkout with Credit Card Strategy (Strategy Pattern)...");
+                Card cardPayment = new Card
+                {
+                    CardholderName = "Jeremy Allan",
+                    CardNumber = "4111111111111111",
+                    ExpiryDate = "12/28",
+                    CVV = "123"
+                };
+                Invoice? generatedInvoice = newOrder.ProcessCheckout(cardPayment);
 
                 Console.WriteLine($"Order Final Status - Paid: {newOrder.IsPaid}");
                 if (generatedInvoice != null)
@@ -158,6 +187,7 @@ namespace FavouriteBookstore
                     Console.WriteLine($"Date Issued:  {generatedInvoice.DateIssued:g}");
                     Console.WriteLine($"Order Ref:    {generatedInvoice.OrderReference.OrderId}");
                     Console.WriteLine($"Payment:      PAID");
+                    Console.WriteLine($"Shipping To:  {generatedInvoice.OrderReference.ShippingAddress}");
                     Console.WriteLine($"---------------------------------------");
                     Console.WriteLine($"Items:");
                     foreach (var item in generatedInvoice.OrderReference.Items)
