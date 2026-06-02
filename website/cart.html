@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cart | Favourite Books</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html#home">Favourite Books</a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="cart.html">Cart <span id="cart-count">0</span></a>
+      <span id="session-status" class="session-status" hidden></span>
+      <button id="sign-out-button" class="ghost-button compact-button" type="button" hidden>Sign out</button>
+      <a id="login-link" href="login.html">Login</a>
+      <a id="signup-link" class="button-link" href="signup.html">Sign up</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-heading">
+      <p class="eyebrow">Shopping cart</p>
+      <h1>Your cart</h1>
+      <p class="muted">Review your selected books before checkout.</p>
+    </section>
+
+    <section class="section split-section cart-page-layout">
+      <div>
+        <div id="cart-items" class="cart-items"></div>
+      </div>
+      <aside class="summary-panel">
+        <h2>Order summary</h2>
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong id="cart-total">$0.00</strong>
+        </div>
+        <button id="checkout-button" class="button" type="button">Checkout</button>
+        <button id="clear-cart-button" class="ghost-button" type="button">Clear cart</button>
+        <p id="checkout-message" class="muted"></p>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Favourite Books demo website. Frontend files live in the website folder.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

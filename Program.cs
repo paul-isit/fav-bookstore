@@ -33,9 +33,11 @@ namespace FavouriteBookstore
 
             app.UseAuthorization();
 
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapGet("/", () => Results.Redirect("/website/index.html"));
+app.MapControllers();
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
             await app.RunAsync();
         }

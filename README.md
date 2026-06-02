@@ -10,21 +10,87 @@ Favourite Books is a physical bookstore expanding into an online storefront. The
 
 ## Technology Stack
 
-- **Framework:** ASP.NET Core MVC
+- **Framework:** ASP.NET Core MVC / ASP.NET Core Web API
 - **Language:** C#
-- **Frontend:** HTML, CSS, JavaScript, Razor Views
-- **Database:** SQL-based database, such as SQL Server or SQLite
-- **Architecture:** Model-View-Controller with object-oriented backend design
+- **Frontend:** HTML, CSS, JavaScript in the `website` folder
+- **Database:** JSON data files in `Infrastructure/data` for the current prototype
+- **Architecture:** MVC/domain model with API endpoints used by the frontend
 
 ## Project Structure
 
 ```text
 FavouriteBookstore/
-├── Controllers/        # Handles incoming web requests and coordinates application flow
-├── Models/             # Contains domain classes and data models
-├── Views/              # Razor pages used to render HTML responses
-├── wwwroot/            # Static files such as CSS, JavaScript, and images
-├── Data/               # Database context, seed data, and persistence-related code
-├── Services/           # Business services and external service integrations
-├── Program.cs          # Application startup and configuration
-└── appsettings.json    # Application settings and database configuration
+├── Controllers/        # MVC controllers and API endpoints
+├── Models/             # Domain classes and data models
+├── Views/              # Original ASP.NET Razor views
+├── website/            # Frontend HTML, CSS, and JavaScript pages
+├── wwwroot/            # ASP.NET static assets
+├── Infrastructure/     # JSON data files and persistence connector
+├── Services/           # Business services and system facade
+├── Program.cs          # Application startup and routing configuration
+└── appsettings.json    # Application settings
+```
+
+## Running the Integrated Website
+
+Run the app from the repository root, not from the `website` folder:
+
+```bash
+dotnet run --urls http://localhost:5142
+```
+
+Then open the frontend in a browser:
+
+```text
+http://localhost:5142
+```
+
+The root URL redirects to:
+
+```text
+http://localhost:5142/website/index.html
+```
+
+Do not use Python Live Server for the integrated version. The frontend now connects to backend API endpoints, so it needs the ASP.NET app running.
+
+## Frontend Pages
+
+```text
+/website/index.html   # Catalogue and cart preview
+/website/cart.html    # Full cart and checkout
+/website/login.html   # Login page
+/website/signup.html  # Signup page
+```
+
+## Backend API Connections
+
+The JavaScript frontend calls these backend endpoints:
+
+```text
+GET  /api/books      # Loads current book data and stock counts
+POST /api/signup     # Creates a customer account in users.json
+POST /api/login      # Validates login against users.json
+POST /api/guest      # Starts a guest shopper session
+POST /api/checkout   # Processes checkout and updates stock counts in books.json
+```
+
+## Testing the Flow
+
+1. Start the backend with `dotnet run --urls http://localhost:5142`.
+2. Open `http://localhost:5142/website/index.html`.
+3. Add books to the cart.
+4. Open the cart preview or go to `cart.html`.
+5. Checkout.
+6. Refresh the catalogue and confirm the stock count decreased.
+
+Signup, login, and guest login can be tested through `signup.html` and `login.html`. After login/signup/guest login, the navigation shows the active shopper and a sign-out button. User records are stored in:
+
+```text
+Infrastructure/data/users.json
+```
+
+Book stock is stored in:
+
+```text
+Infrastructure/data/books.json
+```
