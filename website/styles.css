@@ -445,6 +445,7 @@ select {
 
 .cart-page-layout {
   align-items: start;
+  grid-template-columns: minmax(0, 1fr) 400px;
 }
 
 .quantity-control {
@@ -492,6 +493,7 @@ select {
 
 .invoice-panel {
   margin-top: 18px;
+  overflow: hidden;
 }
 
 .invoice-heading,
@@ -523,6 +525,7 @@ select {
   background: #fbfaf8;
   border: 1px solid var(--border);
   border-radius: 8px;
+  min-width: 0;
 }
 
 .invoice-details dt {
@@ -534,6 +537,9 @@ select {
 
 .invoice-details dd {
   margin: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .invoice-items {
@@ -575,14 +581,26 @@ select {
   }
 }
 
-.session-status {
-  color: var(--green);
-  font-weight: 700;
-}
-
 .compact-button {
   min-height: 34px;
   padding: 6px 10px;
+}
+
+.session-status {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  max-width: 280px;
+  padding: 6px 12px;
+  color: var(--green);
+  background: #eef8f2;
+  border: 1px solid #b8dfc8;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .button:disabled {

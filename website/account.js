@@ -58,7 +58,7 @@ function renderHeaderState() {
     return;
   }
 
-  sessionStatus.textContent = `Hi, ${session.name} (${session.role})`;
+  sessionStatus.textContent = `Shopping as ${session.name}`;
   sessionStatus.hidden = false;
   signOutButton.hidden = false;
   loginLink.hidden = true;

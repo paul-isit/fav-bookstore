@@ -133,7 +133,7 @@ function renderSession() {
     return;
   }
 
-  sessionStatus.textContent = `Hi, ${state.session.name} (${state.session.role})`;
+  sessionStatus.textContent = `Shopping as ${state.session.name}`;
   sessionStatus.hidden = false;
   signOutButton.hidden = false;
   loginLink.hidden = true;
@@ -334,9 +334,7 @@ function getCheckoutDetails() {
       postcode: String(form.get("postcode") || "").trim()
     },
     payment: {
-      method: String(form.get("method") || "").trim(),
-      cardholderName: String(form.get("cardholderName") || "").trim(),
-      cardNumber: String(form.get("cardNumber") || "").trim()
+      method: String(form.get("method") || "").trim()
     }
   };
 }
@@ -387,14 +385,12 @@ function renderInvoice(invoice) {
   const address = invoice.address || invoice.Address || {};
   const items = invoice.items || invoice.Items || [];
   const total = invoice.total ?? invoice.Total ?? 0;
-  const rawCard = payment.cardNumber || payment.CardNumber || "";
-  const maskedCard = rawCard ? ` ending ${String(rawCard).slice(-4)}` : "";
 
   invoiceNumber.textContent = invoice.invoiceNumber || invoice.InvoiceNumber || "";
   invoiceCustomer.textContent = state.session
     ? `${state.session.name} (${state.session.email || state.session.role})`
     : "Guest shopper";
-  invoicePayment.textContent = `${payment.method || payment.Method || "Payment"}${maskedCard}`;
+  invoicePayment.textContent = payment.method || payment.Method || "Payment";
   invoiceAddress.textContent = [
     address.street || address.Street,
     address.suburb || address.Suburb,

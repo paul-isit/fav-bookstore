@@ -46,6 +46,11 @@ namespace FavouriteBookstore.Controllers
                     return Conflict(new { message = "An account already exists for this email address." });
                 }
 
+                if (users.Any(user => user.Name.Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    return Conflict(new { message = "That username is already taken." });
+                }
+
                 WebsiteUserRecord newUser = new WebsiteUserRecord(request.Name.Trim(), request.Email.Trim().ToLowerInvariant(), request.Password, "Customer");
                 users.Add(newUser);
                 WriteUsersUnsafe(users);
@@ -212,7 +217,7 @@ namespace FavouriteBookstore.Controllers
     public record UserDto(string Name, string Email, string Role);
     public record CheckoutItem(string Id, int Quantity);
     public record CheckoutAddress(string Street, string Suburb, string State, string Postcode);
-    public record CheckoutPayment(string Method, string? CardholderName, string? CardNumber);
+    public record CheckoutPayment(string Method);
     public record CheckoutRequest(string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
     public record InvoiceLine(string Id, string Title, int Quantity, double UnitPrice, double LineTotal);
     public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, double Total);
