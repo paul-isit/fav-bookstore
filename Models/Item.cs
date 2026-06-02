@@ -6,14 +6,42 @@ namespace FavouriteBookstore.Models
     [JsonDerivedType(typeof(Book), typeDiscriminator: "Book")]
     public abstract class Item
     {
-        // Modern C# auto-properties eliminate unused private field warnings
         public string Id { get; set; } = string.Empty;
-        public double Price { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        public decimal Price { get; set; }
         public int Stock { get; set; }
         
         // Quantity for cart management
         public int Quantity { get; set; } = 1;
 
+        public bool IsAvailable => Stock > 0;
+
         protected Item() { }
+
+        public bool HasEnoughStock(int quantity)
+        {
+            return quantity > 0 && Stock >= quantity;
+        }
+
+        public void ReduceStock(int quantity)
+        {
+            if (!HasEnoughStock(quantity))
+            {
+                throw new InvalidOperationException("Not enough stock available.");
+            }
+
+            Stock -= quantity;
+        }
+
+        public void IncreaseStock(int quantity)
+        {
+            if (quantity <= 0)
+            {
+                throw new ArgumentException("Quantity must be greater than zero.");
+            }
+
+            Stock += quantity;
+        }
     }
 }
