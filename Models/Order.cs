@@ -4,11 +4,11 @@
     {
         public string OrderId { get; private set; }
         public List<Item> Items { get; private set; }
-        public double TotalPrice { get; private set; }
-        
+        public decimal TotalPrice { get; private set; }
+
         public bool IsPaid { get; private set; }
 
-        public Order(List<Item> items, double totalPrice)
+        public Order(List<Item> items, decimal totalPrice)
         {
             OrderId = Guid.NewGuid().ToString();
             Items = new List<Item>(items);
@@ -40,7 +40,7 @@
                 IsPaid = true;
                 return new Invoice(this, TotalPrice);
             }
-            
+
             return null;
         }
     }

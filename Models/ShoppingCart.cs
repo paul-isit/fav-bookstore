@@ -81,7 +81,7 @@ namespace FavouriteBookstore.Models
             return cartItems.AsReadOnly();
         }
 
-        public double GetTotalPrice()
+        public decimal GetTotalPrice()
         {
             return cartItems.Sum(item => item.Price * item.Quantity);
         }
@@ -96,7 +96,7 @@ namespace FavouriteBookstore.Models
                 return null;
             }
 
-            double orderTotal = itemsToOrder.Sum(item => item.Price * item.Quantity);
+            decimal orderTotal = itemsToOrder.Sum(item => item.Price * item.Quantity);
             return new Order(itemsToOrder, orderTotal);
         }
 
