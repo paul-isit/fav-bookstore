@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | Favourite Books</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html#home">Favourite Books</a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#cart">Cart</a>
+      <a href="login.html">Login</a>
+      <a class="button-link" href="signup.html">Sign up</a>
+    </nav>
+  </header>
+
+  <main class="auth-page">
+    <section class="auth-copy">
+      <p class="eyebrow">Welcome back</p>
+      <h1>Login</h1>
+      <p class="muted">Use the demo account you created on this browser. This frontend version stores login details locally only.</p>
+    </section>
+
+    <form id="login-form" class="form-panel auth-form">
+      <label for="login-email">Email</label>
+      <input id="login-email" type="email" placeholder="you@example.com" required />
+
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" placeholder="Password" required />
+
+      <button class="button" type="submit">Login</button>
+      <p id="login-message" class="muted"></p>
+      <p class="muted">No account yet? <a href="signup.html">Sign up here</a>.</p>
+    </form>
+  </main>
+
+  <script src="account.js"></script>
+</body>
+</html>
