@@ -1,27 +1,30 @@
 const fallbackBooks = [
   {
     Id: "B01",
+    ISBN: "978-1-23456-789-0",
     Price: 34.95,
     Stock: 12,
-    Title: "The Art of Layering",
+    Name: "The Art of Layering",
     Author: "Jeremy Allan",
     Genre: "Software Engineering",
     Publisher: "Swinburne Academic Press"
   },
   {
     Id: "B02",
+    ISBN: "978-0-98765-432-1",
     Price: 59.99,
     Stock: 4,
-    Title: "Decoupled Web Architectures",
+    Name: "Decoupled Web Architectures",
     Author: "Justin Chen",
     Genre: "Computer Science",
     Publisher: "Glenferrie Technical Publishing"
   },
   {
     Id: "B03",
+    ISBN: "978-1-55555-555-5",
     Price: 45.00,
     Stock: 25,
-    Title: "Single Responsibility Guidebook",
+    Name: "Single Responsibility Guidebook",
     Author: "Pulkit Pannu",
     Genre: "Design Patterns",
     Publisher: "Swinsoft Press"
@@ -115,9 +118,10 @@ async function loadBooks() {
 function normalizeBooks(books) {
   return books.map(book => ({
     Id: book.Id || book.id || "",
+    ISBN: book.ISBN || book.isbn || "",
     Price: Number(book.Price ?? book.price ?? 0),
     Stock: Number(book.Stock ?? book.stock ?? 0),
-    Title: book.Title || book.title || "",
+    Title: book.Name || book.Name || book.Title || book.title || "",
     Author: book.Author || book.author || "",
     Genre: book.Genre || book.genre || "",
     Publisher: book.Publisher || book.publisher || ""

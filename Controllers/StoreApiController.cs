@@ -39,6 +39,7 @@ namespace FavouriteBookstore.Controllers
                 .Select(book => new BookDto
                 {
                     Id = book.Id,
+                    ISBN = book.ISBN,
                     Price = book.Price,
                     Stock = book.Stock,
                     Title = book.Name,
@@ -224,9 +225,12 @@ namespace FavouriteBookstore.Controllers
     public class BookDto
     {
         public string Id { get; set; } = string.Empty;
+        public string ISBN { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int Stock { get; set; }
+        // Keep both Title and Name for compatibility with frontend data shapes
         public string Title { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
         public string Genre { get; set; } = string.Empty;
         public string Publisher { get; set; } = string.Empty;
@@ -237,12 +241,16 @@ namespace FavouriteBookstore.Controllers
     public record WebsiteUserRecord(string Name, string Email, string PasswordHash, string Role);
     public record UserDto(string Name, string Email, string Role);
     public record CheckoutItem(string Id, int Quantity);
-    public record CheckoutRequest(string? Email, List<CheckoutItem> Items);
-    public record CheckoutResponse(string Message, decimal Total, List<BookDto> Books);
-    //public record CheckoutAddress(string Street, string Suburb, string State, string Postcode);
-    //public record CheckoutPayment(string Method);
-    //public record CheckoutRequest(string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
-    //public record InvoiceLine(string Id, string Title, int Quantity, double UnitPrice, double LineTotal);
-    //public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, double Total);
-    //public record CheckoutResponse(string Message, double Total, List<BookDto> Books, CheckoutInvoice Invoice);
+
+    // Checkout payloads - include address and payment details
+    public record CheckoutAddress(string Street, string Suburb, string State, string Postcode);
+    public record CheckoutPayment(string Method);
+    public record CheckoutRequest(string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
+
+    // Invoice types using decimal for monetary values
+    public record InvoiceLine(string Id, string Title, int Quantity, decimal UnitPrice, decimal LineTotal);
+    public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, decimal Total);
+
+    // Response includes computed total and generated invoice
+    public record CheckoutResponse(string Message, decimal Total, List<BookDto> Books, CheckoutInvoice? Invoice);
 }
