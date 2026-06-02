@@ -6,6 +6,11 @@ const sessionKey = "favouriteBooksSession";
 const signupForm = document.querySelector("#signup-form");
 const loginForm = document.querySelector("#login-form");
 const guestButton = document.querySelector("#guest-login-button");
+const cartCount = document.querySelector("#cart-count");
+const sessionStatus = document.querySelector("#session-status");
+const signOutButton = document.querySelector("#sign-out-button");
+const loginLink = document.querySelector("#login-link");
+const signupLink = document.querySelector("#signup-link");
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -38,6 +43,35 @@ function normaliseUser(user) {
   };
 }
 
+function renderHeaderState() {
+  const cart = JSON.parse(localStorage.getItem("favouriteBooksCart") || "[]");
+  const session = JSON.parse(localStorage.getItem(sessionKey) || "null");
+
+  if (cartCount) cartCount.textContent = String(cart.length);
+  if (!sessionStatus || !signOutButton || !loginLink || !signupLink) return;
+
+  if (!session) {
+    sessionStatus.hidden = true;
+    signOutButton.hidden = true;
+    loginLink.hidden = false;
+    signupLink.hidden = false;
+    return;
+  }
+
+  sessionStatus.textContent = `Hi, ${session.name} (${session.role})`;
+  sessionStatus.hidden = false;
+  signOutButton.hidden = false;
+  loginLink.hidden = true;
+  signupLink.hidden = true;
+}
+
+if (signOutButton) {
+  signOutButton.addEventListener("click", () => {
+    localStorage.removeItem(sessionKey);
+    renderHeaderState();
+  });
+}
+
 if (signupForm) {
   const message = document.querySelector("#signup-message");
 
@@ -65,6 +99,8 @@ if (signupForm) {
     }
   });
 }
+
+renderHeaderState();
 
 if (loginForm) {
   const message = document.querySelector("#login-message");

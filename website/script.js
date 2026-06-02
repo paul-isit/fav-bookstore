@@ -51,6 +51,7 @@ const cartCount = document.querySelector("#cart-count");
 const cartItems = document.querySelector("#cart-items");
 const cartTotal = document.querySelector("#cart-total");
 const checkoutButton = document.querySelector("#checkout-button");
+const checkoutForm = document.querySelector("#checkout-form");
 const clearCartButton = document.querySelector("#clear-cart-button");
 const checkoutMessage = document.querySelector("#checkout-message");
 const cartToggle = document.querySelector("#cart-toggle");
@@ -62,6 +63,13 @@ const sessionStatus = document.querySelector("#session-status");
 const signOutButton = document.querySelector("#sign-out-button");
 const loginLink = document.querySelector("#login-link");
 const signupLink = document.querySelector("#signup-link");
+const invoicePanel = document.querySelector("#invoice-panel");
+const invoiceNumber = document.querySelector("#invoice-number");
+const invoiceCustomer = document.querySelector("#invoice-customer");
+const invoicePayment = document.querySelector("#invoice-payment");
+const invoiceAddress = document.querySelector("#invoice-address");
+const invoiceItems = document.querySelector("#invoice-items");
+const invoiceTotal = document.querySelector("#invoice-total");
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -227,6 +235,24 @@ function removeFromCart(bookId) {
   renderSession();
 }
 
+function setCartQuantity(bookId, quantity) {
+  const book = state.books.find(item => item.Id === bookId);
+  const safeQuantity = Math.max(0, Math.min(Number(quantity || 0), Number(book?.Stock || 0)));
+
+  state.cart = state.cart.filter(id => id !== bookId);
+  for (let index = 0; index < safeQuantity; index += 1) {
+    state.cart.push(bookId);
+  }
+
+  if (checkoutMessage && quantity > safeQuantity) {
+    checkoutMessage.textContent = `Only ${safeQuantity} copies of ${book?.Title || "that book"} are available.`;
+  }
+
+  saveCart();
+  renderCart();
+  renderCartPreview();
+}
+
 function saveCart() {
   localStorage.setItem("favouriteBooksCart", JSON.stringify(state.cart));
 }
@@ -252,10 +278,15 @@ function renderCart() {
     line.innerHTML = `
       <div>
         <h3>${escapeHtml(book.Title)}</h3>
-        <p class="book-meta">Qty ${quantity} · ${escapeHtml(book.Author)}</p>
+        <p class="book-meta">${escapeHtml(book.Author)} · ${Number(book.Stock || 0)} in stock</p>
+      </div>
+      <div class="quantity-control" aria-label="Quantity for ${escapeHtml(book.Title)}">
+        <button class="icon-button" type="button" data-decrease="${escapeHtml(book.Id)}" aria-label="Decrease quantity">-</button>
+        <input type="number" min="0" max="${Number(book.Stock || 0)}" value="${quantity}" data-quantity="${escapeHtml(book.Id)}" aria-label="Quantity" />
+        <button class="icon-button" type="button" data-increase="${escapeHtml(book.Id)}" aria-label="Increase quantity">+</button>
       </div>
       <strong>${money.format(lineTotal)}</strong>
-      <button class="ghost-button" type="button" data-remove="${escapeHtml(book.Id)}">Remove one</button>
+      <button class="ghost-button" type="button" data-remove-line="${escapeHtml(book.Id)}">Remove</button>
     `;
     cartItems.append(line);
   });
@@ -291,19 +322,46 @@ function renderCartPreview() {
   cartPreviewTotal.textContent = money.format(getCartTotal(lines));
 }
 
-async function checkout() {
+function getCheckoutDetails() {
+  if (!checkoutForm) return { address: null, payment: null };
+
+  const form = new FormData(checkoutForm);
+  return {
+    address: {
+      street: String(form.get("street") || "").trim(),
+      suburb: String(form.get("suburb") || "").trim(),
+      state: String(form.get("state") || "").trim(),
+      postcode: String(form.get("postcode") || "").trim()
+    },
+    payment: {
+      method: String(form.get("method") || "").trim(),
+      cardholderName: String(form.get("cardholderName") || "").trim(),
+      cardNumber: String(form.get("cardNumber") || "").trim()
+    }
+  };
+}
+
+async function checkout(event) {
+  if (event) event.preventDefault();
+
   const lines = getCartLines();
   if (!lines.length) {
     checkoutMessage.textContent = "Add a book before checking out.";
     return;
   }
 
+  if (checkoutForm && !checkoutForm.reportValidity()) return;
+
   try {
+    if (checkoutMessage) checkoutMessage.textContent = "Processing checkout...";
+    const checkoutDetails = getCheckoutDetails();
     const result = await apiRequest("/checkout", {
       method: "POST",
       body: JSON.stringify({
         email: state.session?.email || null,
-        items: lines.map(line => ({ id: line.book.Id, quantity: line.quantity }))
+        items: lines.map(line => ({ id: line.book.Id, quantity: line.quantity })),
+        address: checkoutDetails.address,
+        payment: checkoutDetails.payment
       })
     });
 
@@ -314,11 +372,50 @@ async function checkout() {
     renderBooks();
     renderCart();
     renderCartPreview();
+    renderInvoice(result.invoice || result.Invoice);
     checkoutMessage.textContent = (result.message || result.Message) + " Total paid: " + money.format(result.total || result.Total || 0) + " Stock has been updated.";
   } catch (error) {
     checkoutMessage.textContent = error.message;
     await loadBooks();
   }
+}
+
+function renderInvoice(invoice) {
+  if (!invoicePanel || !invoice) return;
+
+  const payment = invoice.payment || invoice.Payment || {};
+  const address = invoice.address || invoice.Address || {};
+  const items = invoice.items || invoice.Items || [];
+  const total = invoice.total ?? invoice.Total ?? 0;
+  const rawCard = payment.cardNumber || payment.CardNumber || "";
+  const maskedCard = rawCard ? ` ending ${String(rawCard).slice(-4)}` : "";
+
+  invoiceNumber.textContent = invoice.invoiceNumber || invoice.InvoiceNumber || "";
+  invoiceCustomer.textContent = state.session
+    ? `${state.session.name} (${state.session.email || state.session.role})`
+    : "Guest shopper";
+  invoicePayment.textContent = `${payment.method || payment.Method || "Payment"}${maskedCard}`;
+  invoiceAddress.textContent = [
+    address.street || address.Street,
+    address.suburb || address.Suburb,
+    address.state || address.State,
+    address.postcode || address.Postcode
+  ].filter(Boolean).join(", ");
+
+  invoiceItems.innerHTML = "";
+  items.forEach(item => {
+    const line = document.createElement("div");
+    line.className = "invoice-line";
+    line.innerHTML = `
+      <span>${escapeHtml(item.title || item.Title)} × ${Number(item.quantity || item.Quantity || 0)}</span>
+      <strong>${money.format(Number(item.lineTotal || item.LineTotal || 0))}</strong>
+    `;
+    invoiceItems.append(line);
+  });
+
+  invoiceTotal.textContent = money.format(Number(total));
+  invoicePanel.hidden = false;
+  invoicePanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function openCartPreview() {
@@ -354,8 +451,21 @@ if (bookGrid) {
 
 if (cartItems) {
   cartItems.addEventListener("click", event => {
-    const button = event.target.closest("[data-remove]");
-    if (button) removeFromCart(button.dataset.remove);
+    const removeButton = event.target.closest("[data-remove-line]");
+    const increaseButton = event.target.closest("[data-increase]");
+    const decreaseButton = event.target.closest("[data-decrease]");
+
+    if (removeButton) setCartQuantity(removeButton.dataset.removeLine, 0);
+    if (increaseButton) {
+      const currentQuantity = state.cart.filter(id => id === increaseButton.dataset.increase).length;
+      setCartQuantity(increaseButton.dataset.increase, currentQuantity + 1);
+    }
+    if (decreaseButton) removeFromCart(decreaseButton.dataset.decrease);
+  });
+
+  cartItems.addEventListener("change", event => {
+    const input = event.target.closest("[data-quantity]");
+    if (input) setCartQuantity(input.dataset.quantity, Number(input.value));
   });
 }
 
@@ -365,11 +475,13 @@ if (clearCartButton) {
     saveCart();
     renderCart();
     renderCartPreview();
+    if (invoicePanel) invoicePanel.hidden = true;
     if (checkoutMessage) checkoutMessage.textContent = "Cart cleared.";
   });
 }
 
-if (checkoutButton) checkoutButton.addEventListener("click", checkout);
+if (checkoutButton && !checkoutForm) checkoutButton.addEventListener("click", checkout);
+if (checkoutForm) checkoutForm.addEventListener("submit", checkout);
 
 if (signOutButton) {
   signOutButton.addEventListener("click", () => {

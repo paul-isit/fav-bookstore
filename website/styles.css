@@ -34,6 +34,10 @@ select {
   font: inherit;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .site-header {
   position: sticky;
   top: 0;
@@ -139,7 +143,8 @@ main {
 
 .tools,
 .form-panel,
-.summary-panel {
+.summary-panel,
+.invoice-panel {
   display: grid;
   gap: 12px;
   padding: 18px;
@@ -248,7 +253,7 @@ select {
 
 .cart-line {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 16px;
   align-items: center;
   padding: 18px;
@@ -273,7 +278,8 @@ select {
 @media (max-width: 900px) {
   .section-heading,
   .split-section,
-  .book-grid {
+  .book-grid,
+  .invoice-details {
     grid-template-columns: 1fr;
   }
 }
@@ -441,6 +447,111 @@ select {
   align-items: start;
 }
 
+.quantity-control {
+  display: grid;
+  grid-template-columns: 32px 64px 32px;
+  gap: 6px;
+  align-items: center;
+}
+
+.quantity-control input {
+  min-height: 32px;
+  padding: 4px;
+  text-align: center;
+}
+
+.checkout-form,
+.checkout-form fieldset {
+  display: grid;
+  gap: 12px;
+}
+
+.checkout-form fieldset {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.checkout-form legend {
+  padding: 0 6px;
+  font-weight: 800;
+}
+
+.checkout-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.invoice-panel {
+  margin-top: 18px;
+}
+
+.invoice-heading,
+.invoice-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.invoice-heading {
+  align-items: start;
+}
+
+.invoice-heading h2 {
+  margin: 0;
+}
+
+.invoice-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.invoice-details div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #fbfaf8;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.invoice-details dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.invoice-details dd {
+  margin: 0;
+}
+
+.invoice-items {
+  display: grid;
+  gap: 10px;
+}
+
+.invoice-line {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.invoice-total {
+  padding-top: 4px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
 @media (max-width: 640px) {
   .cart-menu {
     position: static;
@@ -451,6 +562,16 @@ select {
     right: 16px;
     left: 16px;
     width: auto;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .invoice-details {
+    grid-template-columns: 1fr;
   }
 }
 
