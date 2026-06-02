@@ -42,6 +42,12 @@ dotnet run --urls http://localhost:5142
 Then open the frontend in a browser:
 
 ```text
+http://localhost:5142
+```
+
+The root URL redirects to:
+
+```text
 http://localhost:5142/website/index.html
 ```
 
@@ -64,6 +70,7 @@ The JavaScript frontend calls these backend endpoints:
 GET  /api/books      # Loads current book data and stock counts
 POST /api/signup     # Creates a customer account in users.json
 POST /api/login      # Validates login against users.json
+POST /api/guest      # Starts a guest shopper session
 POST /api/checkout   # Processes checkout and updates stock counts in books.json
 ```
 
@@ -76,7 +83,7 @@ POST /api/checkout   # Processes checkout and updates stock counts in books.json
 5. Checkout.
 6. Refresh the catalogue and confirm the stock count decreased.
 
-Signup and login can be tested through `signup.html` and `login.html`. User records are stored in:
+Signup, login, and guest login can be tested through `signup.html` and `login.html`. After login/signup/guest login, the navigation shows the active shopper and a sign-out button. User records are stored in:
 
 ```text
 Infrastructure/data/users.json

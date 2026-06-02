@@ -79,6 +79,13 @@ namespace FavouriteBookstore.Controllers
             }
         }
 
+        [HttpPost("guest")]
+        public IActionResult GuestLogin()
+        {
+            Guest guest = new Guest();
+            return Ok(new UserDto(guest.Name, guest.Email, guest.Role));
+        }
+
         [HttpPost("checkout")]
         public IActionResult Checkout(CheckoutRequest request)
         {
@@ -110,6 +117,12 @@ namespace FavouriteBookstore.Controllers
                     }
                 }
 
+                double total = request.Items.Sum(item =>
+                {
+                    BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
+                    return book.Price * item.Quantity;
+                });
+
                 foreach (CheckoutItem item in request.Items)
                 {
                     BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
@@ -118,41 +131,8 @@ namespace FavouriteBookstore.Controllers
 
                 WriteBooksUnsafe(books);
 
-                if (!string.IsNullOrWhiteSpace(request.Email))
-                {
-                    SaveCheckoutToUserCartUnsafe(request, books);
-                }
-
-                double total = request.Items.Sum(item =>
-                {
-                    BookDto? book = books.FirstOrDefault(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                    return (book?.Price ?? 0) * item.Quantity;
-                });
-
                 return Ok(new CheckoutResponse("Order confirmed.", total, books));
             }
-        }
-
-        private void SaveCheckoutToUserCartUnsafe(CheckoutRequest request, List<BookDto> updatedBooks)
-        {
-            List<User> users = ReadUsersUnsafe();
-            User? user = users.FirstOrDefault(existing => existing.Email.Equals(request.Email!, StringComparison.OrdinalIgnoreCase));
-            if (user is not Customer customer) return;
-
-            foreach (CheckoutItem item in request.Items)
-            {
-                BookDto? updatedBook = updatedBooks.FirstOrDefault(book => book.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                customer.Cart.AddItem(new Book
-                {
-                    Id = item.Id,
-                    Price = updatedBook?.Price ?? 0,
-                    Stock = updatedBook?.Stock ?? 0,
-                    Quantity = item.Quantity
-                });
-            }
-
-            customer.Cart.Clear();
-            WriteUsersUnsafe(users);
         }
 
         private List<BookDto> ReadBooks()

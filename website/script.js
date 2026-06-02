@@ -58,6 +58,10 @@ const cartPreview = document.querySelector("#cart-preview");
 const cartPreviewClose = document.querySelector("#cart-preview-close");
 const cartPreviewItems = document.querySelector("#cart-preview-items");
 const cartPreviewTotal = document.querySelector("#cart-preview-total");
+const sessionStatus = document.querySelector("#session-status");
+const signOutButton = document.querySelector("#sign-out-button");
+const loginLink = document.querySelector("#login-link");
+const signupLink = document.querySelector("#signup-link");
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -93,6 +97,7 @@ async function loadBooks() {
   renderBooks();
   renderCart();
   renderCartPreview();
+  renderSession();
 }
 
 function normalizeBooks(books) {
@@ -106,6 +111,27 @@ function normalizeBooks(books) {
     Publisher: book.Publisher || book.publisher || ""
   }));
 }
+
+function renderSession() {
+  state.session = JSON.parse(localStorage.getItem("favouriteBooksSession") || "null");
+
+  if (!sessionStatus || !signOutButton || !loginLink || !signupLink) return;
+
+  if (!state.session) {
+    sessionStatus.hidden = true;
+    signOutButton.hidden = true;
+    loginLink.hidden = false;
+    signupLink.hidden = false;
+    return;
+  }
+
+  sessionStatus.textContent = `Hi, ${state.session.name} (${state.session.role})`;
+  sessionStatus.hidden = false;
+  signOutButton.hidden = false;
+  loginLink.hidden = true;
+  signupLink.hidden = true;
+}
+
 
 function populateGenres() {
   if (!genreFilter) return;
@@ -198,6 +224,7 @@ function removeFromCart(bookId) {
   saveCart();
   renderCart();
   renderCartPreview();
+  renderSession();
 }
 
 function saveCart() {
@@ -343,6 +370,14 @@ if (clearCartButton) {
 }
 
 if (checkoutButton) checkoutButton.addEventListener("click", checkout);
+
+if (signOutButton) {
+  signOutButton.addEventListener("click", () => {
+    localStorage.removeItem("favouriteBooksSession");
+    state.session = null;
+    renderSession();
+  });
+}
 
 if (cartToggle) {
   cartToggle.addEventListener("click", event => {

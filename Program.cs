@@ -37,6 +37,7 @@ app.UseRouting();
 app.UseCors();
 app.UseAuthorization();
 
+app.MapGet("/", () => Results.Redirect("/website/index.html"));
 app.MapControllers();
 app.MapControllerRoute(
     name: "default",

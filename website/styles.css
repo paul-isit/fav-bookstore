@@ -453,3 +453,18 @@ select {
     width: auto;
   }
 }
+
+.session-status {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.compact-button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -5,6 +5,7 @@ const API_BASE = location.port === "5500" || location.port === "5501"
 const sessionKey = "favouriteBooksSession";
 const signupForm = document.querySelector("#signup-form");
 const loginForm = document.querySelector("#login-form");
+const guestButton = document.querySelector("#guest-login-button");
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -29,6 +30,14 @@ function saveSession(user) {
   }));
 }
 
+function normaliseUser(user) {
+  return {
+    name: user.name || user.Name || "Guest Shopper",
+    email: user.email || user.Email || "",
+    role: user.role || user.Role || "Guest"
+  };
+}
+
 if (signupForm) {
   const message = document.querySelector("#signup-message");
 
@@ -37,14 +46,14 @@ if (signupForm) {
     message.textContent = "Creating account...";
 
     try {
-      const user = await apiRequest("/signup", {
+      const user = normaliseUser(await apiRequest("/signup", {
         method: "POST",
         body: JSON.stringify({
           name: document.querySelector("#signup-name").value.trim(),
           email: document.querySelector("#signup-email").value.trim().toLowerCase(),
           password: document.querySelector("#signup-password").value
         })
-      });
+      }));
 
       saveSession(user);
       message.textContent = `Account created. Welcome, ${user.name}. Redirecting...`;
@@ -65,19 +74,38 @@ if (loginForm) {
     message.textContent = "Logging in...";
 
     try {
-      const user = await apiRequest("/login", {
+      const user = normaliseUser(await apiRequest("/login", {
         method: "POST",
         body: JSON.stringify({
           email: document.querySelector("#login-email").value.trim().toLowerCase(),
           password: document.querySelector("#login-password").value
         })
-      });
+      }));
 
       saveSession(user);
       message.textContent = `Login successful. Welcome back, ${user.name}. Redirecting...`;
       setTimeout(() => {
         window.location.href = "index.html#catalogue";
       }, 700);
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  });
+}
+
+if (guestButton) {
+  const message = document.querySelector("#login-message");
+
+  guestButton.addEventListener("click", async () => {
+    message.textContent = "Starting guest session...";
+
+    try {
+      const user = normaliseUser(await apiRequest("/guest", { method: "POST" }));
+      saveSession(user);
+      message.textContent = "Guest session started. Redirecting...";
+      setTimeout(() => {
+        window.location.href = "index.html#catalogue";
+      }, 500);
     } catch (error) {
       message.textContent = error.message;
     }
