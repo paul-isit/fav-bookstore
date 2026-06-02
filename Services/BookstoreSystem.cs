@@ -1,6 +1,7 @@
-﻿using System;
+﻿using FavouriteBookstore.Data;
 using FavouriteBookstore.Models;
-using FavouriteBookstore.Data;
+using System;
+using System.Text.Json;
 
 namespace FavouriteBookstore.Services
 {
@@ -8,6 +9,7 @@ namespace FavouriteBookstore.Services
     {
         private static BookstoreSystem? _instance;
         private static readonly object _lock = new object();
+        private List<Book> books = new List<Book>();    //All books in the system, not just from catalogue.
 
         // Subsystem managers maintained by the Facade
         public Catalogue Catalogue { get; private set; }
@@ -45,6 +47,51 @@ namespace FavouriteBookstore.Services
                 }
                 return _instance;
             }
+        }
+
+        public void LoadBooks()
+        {
+            DatabaseConnector db = DatabaseConnector.GetInstance();
+
+            books = db.GetAllBooks();
+        }
+
+        // Returns every book loaded from books.json.
+        // This includes books that are NOT shown in the catalogue.
+        public List<Book> GetBooks()
+        {
+            return books;
+        }
+
+        // Returns only books that have been registered into the catalogue.
+        // This is what the website should display.
+        public List<Book> GetCatalogueBooks()
+        {
+            return Catalogue.GetAvailableBooks();
+        }
+
+        // Registers a specific Book object into the catalogue.
+        public void RegisterBook(Book book)
+        {
+            Catalogue.RegisterBook(book);
+        }
+
+
+        // Finds a book from the full books list, then registers it into the catalogue.
+        // This is useful now in Program.cs, and later for the admin feature.
+        public bool RegisterBookToCatalogue(string bookId)
+        {
+            foreach (Book book in books)
+            {
+                if (book.Id.Equals(bookId, StringComparison.OrdinalIgnoreCase))
+                {
+                    Catalogue.RegisterBook(book);
+                    return true;
+                }
+            }
+
+            // No matching book was found.
+            return false;
         }
 
         public override string ToString()

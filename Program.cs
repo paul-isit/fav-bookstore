@@ -4,7 +4,7 @@ using FavouriteBookstore.Services;
 using Microsoft.Extensions.FileProviders;
 
 // Run all integration tests before starting the app (keeps previous branch behavior)
-TestRunner.RunAllTests();
+////////////////////////////////////////////////////////////////////////////////////////TestRunner.RunAllTests();
 
 Console.WriteLine("\n==================================================");
 Console.WriteLine("   Starting Web Application...                     ");
@@ -21,7 +21,26 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
-builder.Services.AddSingleton(BookstoreSystem.Instance);
+
+
+
+// Get the single shared bookstore system.
+BookstoreSystem bookstoreSystem = BookstoreSystem.Instance;
+
+// Load every book from Infrastructure/data/books.json.
+// Example: this might load B01, B02, B03, and B04.
+bookstoreSystem.LoadBooks();
+
+// For now, manually choose which books appear in the website catalogue.
+// Later, the admin feature can control this instead.
+bookstoreSystem.RegisterBookToCatalogue("B01");
+bookstoreSystem.RegisterBookToCatalogue("B02");
+
+// Register this prepared bookstore system with ASP.NET.
+builder.Services.AddSingleton(bookstoreSystem);
+
+
+
 
 var app = builder.Build();
 

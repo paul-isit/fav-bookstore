@@ -78,26 +78,30 @@ async function apiRequest(path, options = {}) {
 }
 
 async function loadBooks() {
-  try {
-    state.books = normalizeBooks(await apiRequest("/books"));
-    if (catalogueMessage) catalogueMessage.textContent = "";
-  } catch (apiError) {
     try {
-      const response = await fetch("../Infrastructure/data/books.json");
-      if (!response.ok) throw new Error("Book data could not be loaded.");
-      state.books = normalizeBooks(await response.json());
-      if (catalogueMessage) catalogueMessage.textContent = "Backend API is not running, so stock will not update until you run dotnet on port 5142.";
-    } catch (fileError) {
-      state.books = normalizeBooks(fallbackBooks);
-      if (catalogueMessage) catalogueMessage.textContent = "Using built-in sample book data. Run dotnet from fav-bookstore to enable stock updates.";
-    }
-  }
+        // Try to load books from the backend API.
+        state.books = normalizeBooks(await apiRequest("/books"));
 
-  populateGenres();
-  renderBooks();
-  renderCart();
-  renderCartPreview();
-  renderSession();
+        if (catalogueMessage) {
+            catalogueMessage.textContent = "";
+        }
+    } catch (apiError) {
+        // Do NOT fall back to books.json while debugging.
+        // Otherwise it hides the real problem by showing all books anyway.
+        console.error("Failed to load /api/books:", apiError);
+
+        state.books = [];
+
+        if (catalogueMessage) {
+            catalogueMessage.textContent = "Could not load /api/books. Check the backend controller.";
+        }
+    }
+
+    populateGenres();
+    renderBooks();
+    renderCart();
+    renderCartPreview();
+    renderSession();
 }
 
 function normalizeBooks(books) {

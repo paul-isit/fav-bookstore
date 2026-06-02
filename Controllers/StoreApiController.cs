@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FavouriteBookstore.Models;
 using Microsoft.AspNetCore.Mvc;
+using FavouriteBookstore.Services;
 
 namespace FavouriteBookstore.Controllers
 {
@@ -11,23 +12,43 @@ namespace FavouriteBookstore.Controllers
         private readonly string _booksPath;
         private readonly string _usersPath;
         private static readonly object FileLock = new object();
+        private readonly BookstoreSystem _bookstoreSystem;
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
 
-        public StoreApiController(IWebHostEnvironment environment)
+        public StoreApiController(IWebHostEnvironment environment, BookstoreSystem bookstoreSystem)
         {
             string dataPath = Path.Combine(environment.ContentRootPath, "Infrastructure", "data");
             _booksPath = Path.Combine(dataPath, "books.json");
             _usersPath = Path.Combine(dataPath, "users.json");
+
+            // Use the main bookstore system for catalogue logic.
+            _bookstoreSystem = bookstoreSystem;
         }
 
         [HttpGet("books")]
         public ActionResult<List<BookDto>> GetBooks()
         {
-            return ReadBooks();
+            // Only return books that were registered into the Catalogue.
+            // This hides reserve books from the website.
+            List<BookDto> catalogueBooks = _bookstoreSystem
+                .GetCatalogueBooks()
+                .Select(book => new BookDto
+                {
+                    Id = book.Id,
+                    Price = book.Price,
+                    Stock = book.Stock,
+                    Title = book.Name,
+                    Author = book.Author,
+                    Genre = book.Genre,
+                    Publisher = book.Publisher
+                })
+                .ToList();
+
+            return Ok(catalogueBooks);
         }
 
         [HttpPost("signup")]
@@ -117,7 +138,7 @@ namespace FavouriteBookstore.Controllers
                     }
                 }
 
-                double total = request.Items.Sum(item =>
+                decimal total = request.Items.Sum(item =>
                 {
                     BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
                     return book.Price * item.Quantity;
@@ -175,7 +196,7 @@ namespace FavouriteBookstore.Controllers
     public class BookDto
     {
         public string Id { get; set; } = string.Empty;
-        public double Price { get; set; }
+        public decimal Price { get; set; }
         public int Stock { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
@@ -188,5 +209,5 @@ namespace FavouriteBookstore.Controllers
     public record UserDto(string Name, string Email, string Role);
     public record CheckoutItem(string Id, int Quantity);
     public record CheckoutRequest(string? Email, List<CheckoutItem> Items);
-    public record CheckoutResponse(string Message, double Total, List<BookDto> Books);
+    public record CheckoutResponse(string Message, decimal Total, List<BookDto> Books);
 }

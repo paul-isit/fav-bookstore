@@ -2,7 +2,7 @@
   {
     "Id": "B01",
     "Price": 34.95,
-    "Stock": 12,
+    "Stock": 11,
     "Title": "The Art of Layering",
     "Author": "Jeremy Allan",
     "Genre": "Software Engineering",
@@ -11,7 +11,7 @@
   {
     "Id": "B02",
     "Price": 59.99,
-    "Stock": 4,
+    "Stock": 2344,
     "Title": "Decoupled Web Architectures",
     "Author": "Justin Chen",
     "Genre": "Computer Science",
@@ -19,11 +19,20 @@
   },
   {
     "Id": "B03",
-    "Price": 45.00,
-    "Stock": 25,
+    "Price": 45,
+    "Stock": 12312312,
     "Title": "Single Responsibility Guidebook",
     "Author": "Pulkit Pannu",
     "Genre": "Design Patterns",
+    "Publisher": "Swinsoft Press"
+  },
+  {
+    "Id": "B04",
+    "Price": 102.99,
+    "Stock": 6,
+    "Title": "Vibe Coding Dos and Do Nots",
+    "Author": "John Keys",
+    "Genre": "Computer Science",
     "Publisher": "Swinsoft Press"
   }
 ]
