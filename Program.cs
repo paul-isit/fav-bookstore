@@ -1,10 +1,9 @@
 using System;
 using FavouriteBookstore;
 using FavouriteBookstore.Services;
-using Microsoft.Extensions.FileProviders;
 
-// Run all integration tests before starting the app (keeps previous branch behavior)
-////////////////////////////////////////////////////////////////////////////////////////TestRunner.RunAllTests();
+// Run all integration tests before starting the app
+TestRunner.RunAllTests();
 
 Console.WriteLine("\n==================================================");
 Console.WriteLine("   Starting Web Application...                     ");
@@ -22,17 +21,13 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod());
 });
 
-
-
 // Get the single shared bookstore system.
 BookstoreSystem bookstoreSystem = BookstoreSystem.Instance;
 
 // Load every book from Infrastructure/data/books.json.
-// Example: this might load B01, B02, B03, and B04.
 bookstoreSystem.LoadBooks();
 
-// For now, manually choose which books appear in the website catalogue.
-// Later, the admin feature can control this instead.
+// Manually choose which books appear in the website catalogue.
 bookstoreSystem.RegisterBookToCatalogue("B01");
 bookstoreSystem.RegisterBookToCatalogue("B02");
 bookstoreSystem.RegisterBookToCatalogue("B03");
@@ -49,9 +44,6 @@ bookstoreSystem.RegisterBookToCatalogue("B12");
 // Register this prepared bookstore system with ASP.NET.
 builder.Services.AddSingleton(bookstoreSystem);
 
-
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -64,22 +56,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-string websitePath = Path.Combine(app.Environment.ContentRootPath, "website");
-if (Directory.Exists(websitePath))
-{
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new PhysicalFileProvider(websitePath),
-        RequestPath = "/website"
-    });
-}
-
 app.UseRouting();
 app.UseCors();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Redirect("/website/index.html"));
-app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

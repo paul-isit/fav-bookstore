@@ -1,10 +1,79 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Favourite Books";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-    <h2>Bookstore System Test</h2>
-    <p>@ViewData["BookstoreSystemText"]</p>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Favourite Books</title>
+  <link rel="stylesheet" href="~/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="@Url.Action("Index", "Home")#home">Favourite Books</a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="@Url.Action("Index", "Home")#catalogue">Catalogue</a>
+      <div class="cart-menu">
+        <button id="cart-toggle" class="nav-cart-button" type="button" aria-expanded="false">
+          Cart <span id="cart-count">0</span>
+        </button>
+        <div id="cart-preview" class="cart-preview" hidden>
+          <div class="cart-preview-header">
+            <h2>Cart</h2>
+            <button id="cart-preview-close" class="icon-button" type="button" aria-label="Close cart preview">×</button>
+          </div>
+          <div id="cart-preview-items" class="cart-preview-items"></div>
+          <div class="summary-row">
+            <span>Total</span>
+            <strong id="cart-preview-total">$0.00</strong>
+          </div>
+          <a class="button" href="@Url.Action("Cart", "Home")">Checkout</a>
+        </div>
+      </div>
+      <span id="session-status" class="session-status" hidden></span>
+      <button id="sign-out-button" class="ghost-button compact-button" type="button" hidden>Sign out</button>
+      <a id="login-link" href="@Url.Action("Login", "Home")">Login</a>
+      <a id="signup-link" class="button-link" href="@Url.Action("Signup", "Home")">Sign up</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="home" class="hero">
+      <p class="eyebrow">Online bookstore</p>
+      <h1>Find your next favourite book.</h1>
+      <p>Browse the original project catalogue, add books to your cart, and try a simple checkout flow.</p>
+      <a class="button" href="#catalogue">Browse catalogue</a>
+    </section>
+
+    <section id="catalogue" class="section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Catalogue</p>
+          <h2>Available books</h2>
+        </div>
+        <form class="tools" id="catalogue-form">
+            <input id="search-input" type="search" placeholder="Search title, author, or genre" />
+            <h3>Advanced Filter</h3>
+            <input id="search-name" type="search" placeholder="Search title" />
+            <input id="search-author" type="search" placeholder="Search Author" />
+            <input id="search-isbn" type="search" placeholder="Search ISBN" />
+            <input id="search-publisher" type="search" placeholder="Search Publisher" />
+            <select id="genre-filter">
+                <option value="">All genres</option>
+            </select>
+        </form>
+      </div>
+      <div id="book-grid" class="book-grid"></div>
+      <p id="catalogue-message" class="muted"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Favourite Books demo website. Frontend files live in the Views folder.</p>
+  </footer>
+
+  <script src="~/js/script.js"></script>
+</body>
+</html>

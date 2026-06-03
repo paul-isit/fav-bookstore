@@ -25,7 +25,7 @@
     "Id": "B03",
     "ISBN": "978-1-55555-555-5",
     "Price": 45.00,
-    "Stock": 13,
+    "Stock": 0,
     "Title": "",
     "Name": "Single Responsibility Guidebook",
     "Author": "Pulkit Pannu",
