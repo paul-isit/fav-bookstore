@@ -1,4 +1,4 @@
-const fallbackBooks = [
+const fallbackBooks = [     //Default books to display if API call fails
   {
     Id: "B01",
     ISBN: "978-1-23456-789-0",
@@ -28,7 +28,17 @@ const fallbackBooks = [
     Author: "Pulkit Pannu",
     Genre: "Design Patterns",
     Publisher: "Swinsoft Press"
-  }
+    },
+    {
+        Id: "B04",
+        ISBN: "123456789",
+        Price: 100000.00,
+        Stock: 8888,
+        Name: "If You're seeing this, then the system failed to receive Catalogue data",
+        Author: "Ben Tennyson",
+        Genre: "Action",
+        Publisher: "Not a real Publisher Inc."
+    }
 ];
 
 const API_BASE = location.port === "5500" || location.port === "5501"
@@ -46,10 +56,15 @@ const money = new Intl.NumberFormat("en-AU", {
   currency: "AUD"
 });
 
+// -- Utility functions -- 
+//Catalogue
 const bookGrid = document.querySelector("#book-grid");
 const catalogueMessage = document.querySelector("#catalogue-message");
 const searchInput = document.querySelector("#search-input");
 const genreFilter = document.querySelector("#genre-filter");
+const catalogueErrorMessage = document.querySelector("#catalogue-error-message");
+
+//Cart
 const cartCount = document.querySelector("#cart-count");
 const cartItems = document.querySelector("#cart-items");
 const cartTotal = document.querySelector("#cart-total");
@@ -62,10 +77,14 @@ const cartPreview = document.querySelector("#cart-preview");
 const cartPreviewClose = document.querySelector("#cart-preview-close");
 const cartPreviewItems = document.querySelector("#cart-preview-items");
 const cartPreviewTotal = document.querySelector("#cart-preview-total");
+
+//Accounts
 const sessionStatus = document.querySelector("#session-status");
 const signOutButton = document.querySelector("#sign-out-button");
 const loginLink = document.querySelector("#login-link");
 const signupLink = document.querySelector("#signup-link");
+
+//Invoice
 const invoicePanel = document.querySelector("#invoice-panel");
 const invoiceNumber = document.querySelector("#invoice-number");
 const invoiceCustomer = document.querySelector("#invoice-customer");
@@ -107,6 +126,21 @@ async function loadBooks() {
             catalogueMessage.textContent = "Could not load /api/books. Check the backend controller.";
         }
     }
+
+    /*          -- OLD API CALL --
+    try {
+        state.books = normalizeBooks(await apiRequest("/books"));
+        if (catalogueMessage) catalogueMessage.textContent = "";
+    } catch (apiError) {
+        try {
+            const response = await fetch("../Infrastructure/data/books.json");
+            if (!response.ok) throw new Error("Book data could not be loaded.");
+            state.books = normalizeBooks(await response.json());
+            if (catalogueMessage) catalogueMessage.textContent = "Backend API is not running, so stock will not update until you run dotnet on port 5142.";
+        } catch (fileError) {
+            state.books = normalizeBooks(fallbackBooks);
+            if (catalogueMessage) catalogueMessage.textContent = "Using built-in sample book data. Run dotnet from fav-bookstore to enable stock updates.";
+    */
 
     populateGenres();
     renderBooks();

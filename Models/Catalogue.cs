@@ -10,7 +10,7 @@
             {
                 throw new ArgumentNullException(nameof(book));
             }
-            if (availableBooks.Any(b => b.Id == book.Id))    //if (availableBooks.Any(b => b.Id == book.Id || b.ISBN == book.ISBN))
+            if (availableBooks.Any(b => b.Id == book.Id))    // -- OLD IF STATEMENT -- if (availableBooks.Any(b => b.Id == book.Id || b.ISBN == book.ISBN))
             {
                 throw new InvalidOperationException("This book already exists in the catalogue.");
             }

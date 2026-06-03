@@ -35,6 +35,16 @@ bookstoreSystem.LoadBooks();
 // Later, the admin feature can control this instead.
 bookstoreSystem.RegisterBookToCatalogue("B01");
 bookstoreSystem.RegisterBookToCatalogue("B02");
+bookstoreSystem.RegisterBookToCatalogue("B03");
+bookstoreSystem.RegisterBookToCatalogue("B04");
+bookstoreSystem.RegisterBookToCatalogue("B05");
+bookstoreSystem.RegisterBookToCatalogue("B06");
+bookstoreSystem.RegisterBookToCatalogue("B07");
+bookstoreSystem.RegisterBookToCatalogue("B08");
+bookstoreSystem.RegisterBookToCatalogue("B09");
+bookstoreSystem.RegisterBookToCatalogue("B10");
+bookstoreSystem.RegisterBookToCatalogue("B11");
+bookstoreSystem.RegisterBookToCatalogue("B12");
 
 // Register this prepared bookstore system with ASP.NET.
 builder.Services.AddSingleton(bookstoreSystem);
