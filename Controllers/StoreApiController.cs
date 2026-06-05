@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FavouriteBookstore.Models;
 using Microsoft.AspNetCore.Mvc;
+using FavouriteBookstore.Services;
 
 namespace FavouriteBookstore.Controllers
 {
@@ -11,23 +12,44 @@ namespace FavouriteBookstore.Controllers
         private readonly string _booksPath;
         private readonly string _usersPath;
         private static readonly object FileLock = new object();
+        private readonly BookstoreSystem _bookstoreSystem;
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
 
-        public StoreApiController(IWebHostEnvironment environment)
+        public StoreApiController(IWebHostEnvironment environment, BookstoreSystem bookstoreSystem)
         {
             string dataPath = Path.Combine(environment.ContentRootPath, "Infrastructure", "data");
             _booksPath = Path.Combine(dataPath, "books.json");
             _usersPath = Path.Combine(dataPath, "users.json");
+
+            // Use the main bookstore system for catalogue logic.
+            _bookstoreSystem = bookstoreSystem;
         }
 
         [HttpGet("books")]
         public ActionResult<List<BookDto>> GetBooks()
         {
-            return ReadBooks();
+            // Only return books that were registered into the Catalogue.
+            // This hides reserve books from the website.
+            List<BookDto> catalogueBooks = _bookstoreSystem
+                .GetCatalogueBooks()
+                .Select(book => new BookDto
+                {
+                    Id = book.Id,
+                    ISBN = book.ISBN,
+                    Price = book.Price,
+                    Stock = book.Stock,
+                    Title = book.Name,
+                    Author = book.Author,
+                    Genre = book.Genre,
+                    Publisher = book.Publisher
+                })
+                .ToList();
+
+            return Ok(catalogueBooks);
         }
 
         [HttpPost("signup")]
@@ -131,7 +153,7 @@ namespace FavouriteBookstore.Controllers
                     }
                 }
 
-                double total = request.Items.Sum(item =>
+                decimal total = request.Items.Sum(item =>
                 {
                     BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
                     return book.Price * item.Quantity;
@@ -203,9 +225,12 @@ namespace FavouriteBookstore.Controllers
     public class BookDto
     {
         public string Id { get; set; } = string.Empty;
-        public double Price { get; set; }
+        public string ISBN { get; set; } = string.Empty;
+        public decimal Price { get; set; }
         public int Stock { get; set; }
+        // Keep both Title and Name for compatibility with frontend data shapes
         public string Title { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
         public string Genre { get; set; } = string.Empty;
         public string Publisher { get; set; } = string.Empty;
@@ -216,10 +241,16 @@ namespace FavouriteBookstore.Controllers
     public record WebsiteUserRecord(string Name, string Email, string PasswordHash, string Role);
     public record UserDto(string Name, string Email, string Role);
     public record CheckoutItem(string Id, int Quantity);
+
+    // Checkout payloads - include address and payment details
     public record CheckoutAddress(string Street, string Suburb, string State, string Postcode);
     public record CheckoutPayment(string Method);
     public record CheckoutRequest(string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
-    public record InvoiceLine(string Id, string Title, int Quantity, double UnitPrice, double LineTotal);
-    public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, double Total);
-    public record CheckoutResponse(string Message, double Total, List<BookDto> Books, CheckoutInvoice Invoice);
+
+    // Invoice types using decimal for monetary values
+    public record InvoiceLine(string Id, string Title, int Quantity, decimal UnitPrice, decimal LineTotal);
+    public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, decimal Total);
+
+    // Response includes computed total and generated invoice
+    public record CheckoutResponse(string Message, decimal Total, List<BookDto> Books, CheckoutInvoice? Invoice);
 }

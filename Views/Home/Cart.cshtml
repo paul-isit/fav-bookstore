@@ -1,0 +1,115 @@
+@{
+    ViewData["Title"] = "Cart | Favourite Books";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cart | Favourite Books</title>
+  <link rel="stylesheet" href="~/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="@Url.Action("Index", "Home")#home">Favourite Books</a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="@Url.Action("Index", "Home")#catalogue">Catalogue</a>
+      <a href="@Url.Action("Cart", "Home")">Cart <span id="cart-count">0</span></a>
+      <span id="session-status" class="session-status" hidden></span>
+      <button id="sign-out-button" class="ghost-button compact-button" type="button" hidden>Sign out</button>
+      <a id="login-link" href="@Url.Action("Login", "Home")">Login</a>
+      <a id="signup-link" class="button-link" href="@Url.Action("Signup", "Home")">Sign up</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-heading">
+      <p class="eyebrow">Shopping cart</p>
+      <h1>Your cart</h1>
+      <p class="muted">Review selected books, adjust quantities, then enter delivery and payment details.</p>
+    </section>
+
+    <section class="section split-section cart-page-layout">
+      <div>
+        <div id="cart-items" class="cart-items"></div>
+        <section id="invoice-panel" class="invoice-panel" hidden>
+          <div class="invoice-heading">
+            <div>
+              <p class="eyebrow">Invoice</p>
+              <h2>Order confirmed</h2>
+            </div>
+            <strong id="invoice-number"></strong>
+          </div>
+          <dl class="invoice-details">
+            <div>
+              <dt>Customer</dt>
+              <dd id="invoice-customer"></dd>
+            </div>
+            <div>
+              <dt>Payment</dt>
+              <dd id="invoice-payment"></dd>
+            </div>
+            <div>
+              <dt>Delivery address</dt>
+              <dd id="invoice-address"></dd>
+            </div>
+          </dl>
+          <div id="invoice-items" class="invoice-items"></div>
+          <div class="summary-row invoice-total">
+            <span>Total paid</span>
+            <strong id="invoice-total">$0.00</strong>
+          </div>
+        </section>
+      </div>
+      <aside class="summary-panel">
+        <h2>Order summary</h2>
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong id="cart-total">$0.00</strong>
+        </div>
+        <form id="checkout-form" class="checkout-form">
+          <fieldset>
+            <legend>Delivery address</legend>
+            <label for="checkout-street">Street</label>
+            <input id="checkout-street" name="street" type="text" placeholder="123 Glenferrie Road" required />
+
+            <label for="checkout-suburb">Suburb</label>
+            <input id="checkout-suburb" name="suburb" type="text" placeholder="Hawthorn" required />
+
+            <div class="field-row">
+              <label for="checkout-state">State
+                <input id="checkout-state" name="state" type="text" placeholder="VIC" required />
+              </label>
+              <label for="checkout-postcode">Postcode
+                <input id="checkout-postcode" name="postcode" type="text" inputmode="numeric" placeholder="3122" required />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Payment</legend>
+            <label for="payment-method">Method</label>
+            <select id="payment-method" name="method" required>
+              <option value="Card">Card</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Bank transfer">Bank transfer</option>
+              <option value="Gift card">Gift card</option>
+            </select>
+          </fieldset>
+
+          <button id="checkout-button" class="button" type="submit">Checkout and generate invoice</button>
+        </form>
+        <button id="clear-cart-button" class="ghost-button" type="button">Clear cart</button>
+        <p id="checkout-message" class="muted"></p>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Favourite Books demo website. Frontend files live in the Views folder.</p>
+  </footer>
+
+  <script src="~/js/script.js"></script>
+</body>
+</html>

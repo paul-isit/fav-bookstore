@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "Sign up | Favourite Books";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign up | Favourite Books</title>
+  <link rel="stylesheet" href="~/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="@Url.Action("Index", "Home")#home">Favourite Books</a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="@Url.Action("Index", "Home")#catalogue">Catalogue</a>
+      <a href="@Url.Action("Cart", "Home")">Cart <span id="cart-count">0</span></a>
+      <span id="session-status" class="session-status" hidden></span>
+      <button id="sign-out-button" class="ghost-button compact-button" type="button" hidden>Sign out</button>
+      <a id="login-link" href="@Url.Action("Login", "Home")">Login</a>
+      <a id="signup-link" class="button-link" href="@Url.Action("Signup", "Home")">Sign up</a>
+    </nav>
+  </header>
+
+  <main class="auth-page">
+    <section class="auth-copy">
+      <p class="eyebrow">Customer account</p>
+      <h1>Create an account</h1>
+      <p class="muted">This creates a local demo account for the website prototype. It does not edit the original C# backend files.</p>
+    </section>
+
+    <form id="signup-form" class="form-panel auth-form">
+      <label for="signup-name">Name</label>
+      <input id="signup-name" type="text" placeholder="Your name" required />
+
+      <label for="signup-email">Email</label>
+      <input id="signup-email" type="email" placeholder="you@example.com" required />
+
+      <label for="signup-password">Password</label>
+      <input id="signup-password" type="password" placeholder="Password" required minlength="6" />
+
+      <button class="button" type="submit">Create account</button>
+      <p id="signup-message" class="muted"></p>
+      <p class="muted">Already have an account? <a href="@Url.Action("Login", "Home")">Login here</a>.</p>
+    </form>
+  </main>
+
+  <script src="~/js/account.js"></script>
+</body>
+</html>

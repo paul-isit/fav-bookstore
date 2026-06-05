@@ -1,31 +1,44 @@
-const fallbackBooks = [
+const fallbackBooks = [     //Default books to display if API call fails
   {
     Id: "B01",
+    ISBN: "978-1-23456-789-0",
     Price: 34.95,
     Stock: 12,
-    Title: "The Art of Layering",
+    Name: "The Art of Layering",
     Author: "Jeremy Allan",
     Genre: "Software Engineering",
     Publisher: "Swinburne Academic Press"
   },
   {
     Id: "B02",
+    ISBN: "978-0-98765-432-1",
     Price: 59.99,
     Stock: 4,
-    Title: "Decoupled Web Architectures",
+    Name: "Decoupled Web Architectures",
     Author: "Justin Chen",
     Genre: "Computer Science",
     Publisher: "Glenferrie Technical Publishing"
   },
   {
     Id: "B03",
+    ISBN: "978-1-55555-555-5",
     Price: 45.00,
     Stock: 25,
-    Title: "Single Responsibility Guidebook",
+    Name: "Single Responsibility Guidebook",
     Author: "Pulkit Pannu",
     Genre: "Design Patterns",
     Publisher: "Swinsoft Press"
-  }
+    },
+    {
+        Id: "B04",
+        ISBN: "123456789",
+        Price: 100000.00,
+        Stock: 8888,
+        Name: "If You're seeing this, then the system failed to receive Catalogue data",
+        Author: "Ben Tennyson",
+        Genre: "Action",
+        Publisher: "Not a real Publisher Inc."
+    }
 ];
 
 const API_BASE = location.port === "5500" || location.port === "5501"
@@ -43,10 +56,15 @@ const money = new Intl.NumberFormat("en-AU", {
   currency: "AUD"
 });
 
+// -- Utility functions -- 
+//Catalogue
 const bookGrid = document.querySelector("#book-grid");
 const catalogueMessage = document.querySelector("#catalogue-message");
 const searchInput = document.querySelector("#search-input");
 const genreFilter = document.querySelector("#genre-filter");
+const catalogueErrorMessage = document.querySelector("#catalogue-error-message");
+
+//Cart
 const cartCount = document.querySelector("#cart-count");
 const cartItems = document.querySelector("#cart-items");
 const cartTotal = document.querySelector("#cart-total");
@@ -59,10 +77,14 @@ const cartPreview = document.querySelector("#cart-preview");
 const cartPreviewClose = document.querySelector("#cart-preview-close");
 const cartPreviewItems = document.querySelector("#cart-preview-items");
 const cartPreviewTotal = document.querySelector("#cart-preview-total");
+
+//Accounts
 const sessionStatus = document.querySelector("#session-status");
 const signOutButton = document.querySelector("#sign-out-button");
 const loginLink = document.querySelector("#login-link");
 const signupLink = document.querySelector("#signup-link");
+
+//Invoice
 const invoicePanel = document.querySelector("#invoice-panel");
 const invoiceNumber = document.querySelector("#invoice-number");
 const invoiceCustomer = document.querySelector("#invoice-customer");
@@ -87,34 +109,54 @@ async function apiRequest(path, options = {}) {
 }
 
 async function loadBooks() {
-  try {
-    state.books = normalizeBooks(await apiRequest("/books"));
-    if (catalogueMessage) catalogueMessage.textContent = "";
-  } catch (apiError) {
     try {
-      const response = await fetch("../Infrastructure/data/books.json");
-      if (!response.ok) throw new Error("Book data could not be loaded.");
-      state.books = normalizeBooks(await response.json());
-      if (catalogueMessage) catalogueMessage.textContent = "Backend API is not running, so stock will not update until you run dotnet on port 5142.";
-    } catch (fileError) {
-      state.books = normalizeBooks(fallbackBooks);
-      if (catalogueMessage) catalogueMessage.textContent = "Using built-in sample book data. Run dotnet from fav-bookstore to enable stock updates.";
-    }
-  }
+        // Try to load books from the backend API.
+        state.books = normalizeBooks(await apiRequest("/books"));
 
-  populateGenres();
-  renderBooks();
-  renderCart();
-  renderCartPreview();
-  renderSession();
+        if (catalogueMessage) {
+            catalogueMessage.textContent = "";
+        }
+    } catch (apiError) {
+        // Do NOT fall back to books.json while debugging.
+        // Otherwise it hides the real problem by showing all books anyway.
+        console.error("Failed to load /api/books:", apiError);
+
+        state.books = [];
+
+        if (catalogueMessage) {
+            catalogueMessage.textContent = "Could not load /api/books. Check the backend controller.";
+        }
+    }
+
+    /*          -- OLD API CALL --
+    try {
+        state.books = normalizeBooks(await apiRequest("/books"));
+        if (catalogueMessage) catalogueMessage.textContent = "";
+    } catch (apiError) {
+        try {
+            const response = await fetch("../Infrastructure/data/books.json");
+            if (!response.ok) throw new Error("Book data could not be loaded.");
+            state.books = normalizeBooks(await response.json());
+            if (catalogueMessage) catalogueMessage.textContent = "Backend API is not running, so stock will not update until you run dotnet on port 5142.";
+        } catch (fileError) {
+            state.books = normalizeBooks(fallbackBooks);
+            if (catalogueMessage) catalogueMessage.textContent = "Using built-in sample book data. Run dotnet from fav-bookstore to enable stock updates.";
+    */
+
+    populateGenres();
+    renderBooks();
+    renderCart();
+    renderCartPreview();
+    renderSession();
 }
 
 function normalizeBooks(books) {
   return books.map(book => ({
     Id: book.Id || book.id || "",
+    ISBN: book.ISBN || book.isbn || "",
     Price: Number(book.Price ?? book.price ?? 0),
     Stock: Number(book.Stock ?? book.stock ?? 0),
-    Title: book.Title || book.title || "",
+    Title: book.Name || book.Name || book.Title || book.title || "",
     Author: book.Author || book.author || "",
     Genre: book.Genre || book.genre || "",
     Publisher: book.Publisher || book.publisher || ""

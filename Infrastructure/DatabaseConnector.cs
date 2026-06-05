@@ -115,5 +115,28 @@ namespace FavouriteBookstore.Data
                 }
             }
         }
+
+        public List<Book> GetAllBooks()
+        {
+            try
+            {
+                string jsonString = File.ReadAllText(_booksFilePath);
+
+                return string.IsNullOrWhiteSpace(jsonString)
+                    ? new List<Book>()
+                    : JsonSerializer.Deserialize<List<Book>>(
+                        jsonString,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                    ) ?? new List<Book>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error Handling] Failed to load books: {ex.Message}");
+                return new List<Book>();
+            }
+        }
     }
 }
