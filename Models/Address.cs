@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace FavouriteBookstore.Models
 {
     /// <summary>
@@ -13,10 +16,30 @@ namespace FavouriteBookstore.Models
 
         public bool IsValid()
         {
-            return !string.IsNullOrWhiteSpace(Street) &&
-                   !string.IsNullOrWhiteSpace(Suburb) &&
-                   !string.IsNullOrWhiteSpace(State) &&
-                   !string.IsNullOrWhiteSpace(Postcode);
+            if (string.IsNullOrWhiteSpace(Street) ||
+                string.IsNullOrWhiteSpace(Suburb) ||
+                string.IsNullOrWhiteSpace(State) ||
+                string.IsNullOrWhiteSpace(Postcode))
+            {
+                return false;
+            }
+
+            // State must be a valid Australian state or territory abbreviation (case-insensitive)
+            string upperState = State.Trim().ToUpper();
+            string[] validStates = { "VIC", "NSW", "QLD", "WA", "SA", "TAS", "ACT", "NT" };
+            if (!validStates.Contains(upperState))
+            {
+                return false;
+            }
+
+            // Postcode must be a 4-digit numeric string
+            string cleanPostcode = Postcode.Trim();
+            if (cleanPostcode.Length != 4 || !cleanPostcode.All(char.IsDigit))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public override string ToString()

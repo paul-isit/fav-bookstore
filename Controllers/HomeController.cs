@@ -17,11 +17,20 @@ namespace FavouriteBookstore.Controllers
         public IActionResult Index()
         {
             ViewData["BookstoreSystemText"] = BookstoreSystem.Instance.ToString();
-
             return View();
         }
 
-        public IActionResult Privacy()
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        public IActionResult Signup()
+        {
+            return View();
+        }
+
+        public IActionResult Cart()
         {
             return View();
         }
