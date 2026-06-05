@@ -7,6 +7,8 @@ namespace FavouriteBookstore
     {
         public static void Main(string[] args)
         {
+            ResetDemoData();
+
             // Run all integration tests
             TestRunner.RunAllTests();
 
@@ -59,6 +61,28 @@ namespace FavouriteBookstore
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.Run();
+        }
+
+        private static void ResetDemoData()
+        {
+            string dataPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Infrastructure", "data");
+            dataPath = Path.GetFullPath(dataPath);
+
+            ResetDataFile(dataPath, "books.seed.json", "books.json");
+            ResetDataFile(dataPath, "users.seed.json", "users.json");
+        }
+
+        private static void ResetDataFile(string dataPath, string seedFileName, string activeFileName)
+        {
+            string seedPath = Path.Combine(dataPath, seedFileName);
+            string activePath = Path.Combine(dataPath, activeFileName);
+
+            if (!File.Exists(seedPath))
+            {
+                return;
+            }
+
+            File.Copy(seedPath, activePath, overwrite: true);
         }
     }
 }
