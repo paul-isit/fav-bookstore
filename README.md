@@ -6,7 +6,7 @@ The system is implemented as an **ASP.NET Core MVC web application**. It leverag
 
 ---
 
-## 🚀 Getting Started & Requirements
+## Getting Started & Requirements
 
 The project targets **.NET 10.0**. Before running the server, please ensure you have the correct .NET SDK installed.
 
@@ -47,7 +47,7 @@ http://localhost:5142
 
 ---
 
-## 🛠️ Project Architecture & Structure
+## Project Architecture & Structure
 
 ```text
 FavouriteBookstore/
@@ -82,7 +82,7 @@ FavouriteBookstore/
 
 ---
 
-## 📝 Frontend Routes
+## Frontend Routes
 
 The application uses dynamic page routing mapped via the `HomeController`. Navigate to the following paths in your browser:
 
@@ -93,7 +93,7 @@ The application uses dynamic page routing mapped via the `HomeController`. Navig
 
 ---
 
-## 🔌 Backend REST API Endpoints
+## Backend REST API Endpoints
 
 The javascript frontend interacts asynchronously with the following controller endpoints:
 
@@ -107,7 +107,7 @@ POST /api/checkout   # Validates billing/shipping, decrements stock, & registers
 
 ---
 
-## ✅ Dual-Layer Address Input Validation
+## Dual-Layer Address Input Validation
 
 To ensure extreme data integrity, the system implements a robust dual-layer validation for the **State** and **Postcode** inputs:
 
