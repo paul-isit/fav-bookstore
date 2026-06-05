@@ -79,10 +79,10 @@
 
             <div class="field-row">
               <label for="checkout-state">State
-                <input id="checkout-state" name="state" type="text" placeholder="VIC" required />
+                <input id="checkout-state" name="state" type="text" placeholder="VIC" pattern="^(VIC|NSW|QLD|WA|SA|TAS|ACT|NT|vic|nsw|qld|wa|sa|tas|act|nt)$" maxlength="3" title="Please enter a valid 2 or 3-letter Australian state or territory abbreviation (e.g. VIC, NSW, QLD, WA, SA, TAS, ACT, NT)" required />
               </label>
               <label for="checkout-postcode">Postcode
-                <input id="checkout-postcode" name="postcode" type="text" inputmode="numeric" placeholder="3122" required />
+                <input id="checkout-postcode" name="postcode" type="text" inputmode="numeric" placeholder="3122" pattern="^\d{4}$" maxlength="4" title="Please enter a valid 4-digit Australian postcode (e.g. 3122)" required />
               </label>
             </div>
           </fieldset>

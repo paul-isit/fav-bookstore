@@ -601,7 +601,34 @@ if (clearCartButton) {
 }
 
 if (checkoutButton && !checkoutForm) checkoutButton.addEventListener("click", checkout);
-if (checkoutForm) checkoutForm.addEventListener("submit", checkout);
+if (checkoutForm) {
+  checkoutForm.addEventListener("submit", checkout);
+
+  const stateInput = document.getElementById("checkout-state");
+  const postcodeInput = document.getElementById("checkout-postcode");
+
+  if (stateInput) {
+    stateInput.addEventListener("input", (e) => {
+      // Automatically convert to uppercase and filter non-alphabetical characters
+      let value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
+      if (value.length > 3) {
+        value = value.slice(0, 3);
+      }
+      e.target.value = value;
+    });
+  }
+
+  if (postcodeInput) {
+    postcodeInput.addEventListener("input", (e) => {
+      // Restrict input to digits only, maximum of 4 characters
+      let value = e.target.value.replace(/\D/g, "");
+      if (value.length > 4) {
+        value = value.slice(0, 4);
+      }
+      e.target.value = value;
+    });
+  }
+}
 
 if (signOutButton) {
   signOutButton.addEventListener("click", async () => {

@@ -161,6 +161,20 @@ select {
   border: 1px solid #cfc8bd;
   border-radius: 6px;
   background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(35, 31, 32, 0.1);
+}
+
+input:focus:invalid,
+select:focus:invalid {
+  border-color: #d9381e;
+  box-shadow: 0 0 0 3px rgba(217, 56, 30, 0.15);
 }
 
 .button,
