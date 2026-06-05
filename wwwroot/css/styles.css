@@ -416,21 +416,37 @@ select {
 }
 
 .cart-preview-line {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
+  align-items: start;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
 }
 
-.cart-preview-line div {
+.cart-preview-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .cart-preview-line span {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.preview-quantity {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.preview-quantity .icon-button {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  font-size: 0.9rem;
 }
 
 .page-heading {

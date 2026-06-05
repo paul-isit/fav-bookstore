@@ -1,7 +1,8 @@
-using System;
 using FavouriteBookstore;
 using FavouriteBookstore.Services;
 using Microsoft.AspNetCore.DataProtection;
+
+ResetDemoData();
 
 // Run all integration tests before starting the app
 TestRunner.RunAllTests();
@@ -81,3 +82,25 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+static void ResetDemoData()
+{
+    string dataPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Infrastructure", "data");
+    dataPath = Path.GetFullPath(dataPath);
+
+    ResetDataFile(dataPath, "books.seed.json", "books.json");
+    ResetDataFile(dataPath, "users.seed.json", "users.json");
+}
+
+static void ResetDataFile(string dataPath, string seedFileName, string activeFileName)
+{
+    string seedPath = Path.Combine(dataPath, seedFileName);
+    string activePath = Path.Combine(dataPath, activeFileName);
+
+    if (!File.Exists(seedPath))
+    {
+        return;
+    }
+
+    File.Copy(seedPath, activePath, overwrite: true);
+}

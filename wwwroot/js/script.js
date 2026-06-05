@@ -92,6 +92,7 @@ const invoicePayment = document.querySelector("#invoice-payment");
 const invoiceAddress = document.querySelector("#invoice-address");
 const invoiceItems = document.querySelector("#invoice-items");
 const invoiceTotal = document.querySelector("#invoice-total");
+let catalogueMessageTimer;
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -253,13 +254,36 @@ function getCartLines() {
     return items;
   }, {});
 
-  return Object.entries(grouped)
-    .map(([id, quantity]) => ({ book: state.books.find(book => book.Id === id), quantity }))
-    .filter(line => line.book);
+  return state.books
+    .filter(book => grouped[book.Id])
+    .map(book => ({ book, quantity: grouped[book.Id] }));
 }
 
 function getCartTotal(lines) {
   return lines.reduce((total, line) => total + Number(line.book.Price || 0) * line.quantity, 0);
+}
+
+function getCartQuantity(bookId) {
+  return state.cart.filter(id => id === bookId).length;
+}
+
+function getAvailableStock(book) {
+  return Math.max(0, Number(book.Stock || 0) - getCartQuantity(book.Id));
+}
+
+function showCatalogueMessage(message, temporary = false) {
+  if (!catalogueMessage) return;
+
+  window.clearTimeout(catalogueMessageTimer);
+  catalogueMessage.textContent = message;
+
+  if (temporary) {
+    catalogueMessageTimer = window.setTimeout(() => {
+      if (catalogueMessage.textContent === message) {
+        catalogueMessage.textContent = "";
+      }
+    }, 3500);
+  }
 }
 
 function renderBooks() {
@@ -267,9 +291,14 @@ function renderBooks() {
 
   const books = getFilteredBooks();
   bookGrid.innerHTML = "";
-  if (catalogueMessage && !books.length) catalogueMessage.textContent = "No matching books found.";
+  if (!books.length) {
+    showCatalogueMessage("No matching books found.");
+  } else if (catalogueMessage?.textContent === "No matching books found.") {
+    showCatalogueMessage("");
+  }
 
   books.forEach(book => {
+    const availableStock = getAvailableStock(book);
     const soldOut = Number(book.Stock || 0) <= 0;
     const card = document.createElement("article");
     card.className = "book-card";
@@ -280,7 +309,7 @@ function renderBooks() {
         <h3>${escapeHtml(book.Title || "Untitled")}</h3>
         <p class="book-meta">by ${escapeHtml(book.Author || "Unknown author")}</p>
         <p class="book-meta">${escapeHtml(book.Publisher || "Unknown publisher")}</p>
-        <p><strong>${money.format(Number(book.Price || 0))}</strong> <span class="stock">${Number(book.Stock || 0)} in stock</span></p>
+        <p><strong>${money.format(Number(book.Price || 0))}</strong> <span class="stock">${availableStock} in stock</span></p>
         <div class="card-actions">
           <button class="button" type="button" data-add="${escapeHtml(book.Id)}" ${soldOut ? "disabled" : ""}>${soldOut ? "Sold out" : "Add to cart"}</button>
         </div>
@@ -292,15 +321,16 @@ function renderBooks() {
 
 function addToCart(bookId) {
   const book = state.books.find(item => item.Id === bookId);
-  const currentQuantity = state.cart.filter(id => id === bookId).length;
 
-  if (!book || currentQuantity >= Number(book.Stock || 0)) {
-    if (catalogueMessage) catalogueMessage.textContent = "No more stock is available for that book.";
+  if (!book || getAvailableStock(book) <= 0) {
+    showCatalogueMessage("No more stock is available for that book.", true);
+    renderBooks();
     return;
   }
 
   state.cart.push(bookId);
   saveCart();
+  renderBooks();
   renderCart();
   renderCartPreview();
   openCartPreview();
@@ -310,6 +340,7 @@ function removeFromCart(bookId) {
   const index = state.cart.indexOf(bookId);
   if (index >= 0) state.cart.splice(index, 1);
   saveCart();
+  renderBooks();
   renderCart();
   renderCartPreview();
   renderSession();
@@ -329,6 +360,7 @@ function setCartQuantity(bookId, quantity) {
   }
 
   saveCart();
+  renderBooks();
   renderCart();
   renderCartPreview();
 }
@@ -358,13 +390,14 @@ function renderCart() {
 
   lines.forEach(({ book, quantity }) => {
     const lineTotal = Number(book.Price || 0) * quantity;
+    const availableStock = getAvailableStock(book);
 
     const line = document.createElement("article");
     line.className = "cart-line";
     line.innerHTML = `
       <div>
         <h3>${escapeHtml(book.Title)}</h3>
-        <p class="book-meta">${escapeHtml(book.Author)} · ${Number(book.Stock || 0)} in stock</p>
+        <p class="book-meta">${escapeHtml(book.Author)} · ${availableStock} in stock</p>
       </div>
       <div class="quantity-control" aria-label="Quantity for ${escapeHtml(book.Title)}">
         <button class="icon-button" type="button" data-decrease="${escapeHtml(book.Id)}" aria-label="Decrease quantity">-</button>
@@ -396,11 +429,15 @@ function renderCartPreview() {
     const item = document.createElement("div");
     item.className = "cart-preview-line";
     item.innerHTML = `
-      <div>
+      <div class="cart-preview-copy">
         <strong>${escapeHtml(book.Title)}</strong>
-        <span>Qty ${quantity}</span>
+        <div class="preview-quantity" aria-label="Quantity for ${escapeHtml(book.Title)}">
+          <button class="icon-button" type="button" data-preview-decrease="${escapeHtml(book.Id)}" aria-label="Decrease quantity">-</button>
+          <span>Qty ${quantity}</span>
+          <button class="icon-button" type="button" data-preview-increase="${escapeHtml(book.Id)}" aria-label="Increase quantity">+</button>
+        </div>
       </div>
-      <span>${money.format(Number(book.Price || 0) * quantity)}</span>
+      <strong>${money.format(Number(book.Price || 0) * quantity)}</strong>
     `;
     cartPreviewItems.append(item);
   });
@@ -555,6 +592,7 @@ if (clearCartButton) {
   clearCartButton.addEventListener("click", () => {
     state.cart = [];
     saveCart();
+    renderBooks();
     renderCart();
     renderCartPreview();
     if (invoicePanel) invoicePanel.hidden = true;
@@ -591,6 +629,25 @@ if (cartToggle) {
 }
 
 if (cartPreviewClose) cartPreviewClose.addEventListener("click", closeCartPreview);
+
+if (cartPreviewItems) {
+  cartPreviewItems.addEventListener("click", event => {
+    const increaseButton = event.target.closest("[data-preview-increase]");
+    const decreaseButton = event.target.closest("[data-preview-decrease]");
+    if (increaseButton || decreaseButton) event.stopPropagation();
+
+    if (increaseButton) {
+      const currentQuantity = getCartQuantity(increaseButton.dataset.previewIncrease);
+      setCartQuantity(increaseButton.dataset.previewIncrease, currentQuantity + 1);
+      openCartPreview();
+    }
+
+    if (decreaseButton) {
+      removeFromCart(decreaseButton.dataset.previewDecrease);
+      openCartPreview();
+    }
+  });
+}
 
 document.addEventListener("click", event => {
   if (!cartPreview || cartPreview.hidden) return;
