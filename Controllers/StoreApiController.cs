@@ -1,7 +1,13 @@
 using System.Text.Json;
+using System.Security.Claims;
 using FavouriteBookstore.Models;
 using Microsoft.AspNetCore.Mvc;
 using FavouriteBookstore.Services;
+using FavouriteBookstore.Data;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using System.Linq;
 
 namespace FavouriteBookstore.Controllers
 {
@@ -9,31 +15,16 @@ namespace FavouriteBookstore.Controllers
     [Route("api")]
     public class StoreApiController : ControllerBase
     {
-        private readonly string _booksPath;
-        private readonly string _usersPath;
-        private static readonly object FileLock = new object();
         private readonly BookstoreSystem _bookstoreSystem;
-        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            WriteIndented = true
-        };
 
-        public StoreApiController(IWebHostEnvironment environment, BookstoreSystem bookstoreSystem)
+        public StoreApiController(BookstoreSystem bookstoreSystem)
         {
-            string dataPath = Path.Combine(environment.ContentRootPath, "Infrastructure", "data");
-            _booksPath = Path.Combine(dataPath, "books.json");
-            _usersPath = Path.Combine(dataPath, "users.json");
-
-            // Use the main bookstore system for catalogue logic.
             _bookstoreSystem = bookstoreSystem;
         }
 
         [HttpGet("books")]
         public ActionResult<List<BookDto>> GetBooks()
         {
-            // Only return books that were registered into the Catalogue.
-            // This hides reserve books from the website.
             List<BookDto> catalogueBooks = _bookstoreSystem
                 .GetCatalogueBooks()
                 .Select(book => new BookDto
@@ -53,172 +44,252 @@ namespace FavouriteBookstore.Controllers
         }
 
         [HttpPost("signup")]
-        public IActionResult Signup(SignupRequest request)
+        public async Task<IActionResult> Signup(SignupRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             {
                 return BadRequest(new { message = "Name, email and password are required." });
             }
 
-            lock (FileLock)
+            bool success = _bookstoreSystem.AccountManager.RegisterAccount(request.Email.Trim().ToLowerInvariant(), request.Password, request.Name.Trim(), "Customer");
+            if (!success)
             {
-                List<WebsiteUserRecord> users = ReadUsersUnsafe();
-                if (users.Any(user => user.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return Conflict(new { message = "An account already exists for this email address." });
-                }
-
-                if (users.Any(user => user.Name.Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase)))
-                {
-                    return Conflict(new { message = "That username is already taken." });
-                }
-
-                WebsiteUserRecord newUser = new WebsiteUserRecord(request.Name.Trim(), request.Email.Trim().ToLowerInvariant(), request.Password, "Customer");
-                users.Add(newUser);
-                WriteUsersUnsafe(users);
-
-                return Ok(new UserDto(newUser.Name, newUser.Email, newUser.Role));
+                return Conflict(new { message = "An account already exists for this email address." });
             }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, request.Email.Trim().ToLowerInvariant()),
+                new Claim(ClaimTypes.Role, "Customer")
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+            return Ok(new UserDto(request.Name.Trim(), request.Email.Trim().ToLowerInvariant(), "Customer", new List<string>()));
         }
 
         [HttpPost("login")]
-        public IActionResult Login(LoginRequest request)
+        public async Task<IActionResult> Login(LoginRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             {
                 return BadRequest(new { message = "Email and password are required." });
             }
 
-            lock (FileLock)
+            bool success = _bookstoreSystem.AccountManager.Login(request.Email.Trim().ToLowerInvariant(), request.Password);
+            if (!success)
             {
-                WebsiteUserRecord? user = ReadUsersUnsafe().FirstOrDefault(existing => existing.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase));
-                if (user == null || user.PasswordHash != request.Password)
-                {
-                    return Unauthorized(new { message = "Email or password is incorrect." });
-                }
-
-                return Ok(new UserDto(user.Name, user.Email, user.Role));
+                return Unauthorized(new { message = "Email or password is incorrect." });
             }
+
+            var user = _bookstoreSystem.AccountManager.CurrentSessionUser;
+            if (user == null) return Unauthorized();
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.Email),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+            return Ok(new UserDto(user.Name, user.Email, user.Role, GetCartIdsForUser(user)));
         }
 
         [HttpPost("guest")]
-        public IActionResult GuestLogin()
+        public async Task<IActionResult> GuestLogin()
         {
             Guest guest = new Guest();
-            return Ok(new UserDto(guest.Name, guest.Email, guest.Role));
+            
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, guest.Email),
+                new Claim(ClaimTypes.Role, guest.Role)
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+            return Ok(new UserDto(guest.Name, guest.Email, guest.Role, new List<string>()));
         }
 
+        [Authorize]
+        [HttpGet("session")]
+        public IActionResult GetSession()
+        {
+            var email = User.Identity?.Name;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Customer";
+
+            if (string.IsNullOrEmpty(email)) return Unauthorized();
+
+            if (role.Equals("Guest", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new UserDto("Guest Shopper", email, "Guest", new List<string>()));
+            }
+
+            var dbUser = DatabaseConnector.GetInstance().GetUserByEmail(email);
+            if (dbUser == null) return Unauthorized();
+
+            return Ok(new UserDto(dbUser.Name, dbUser.Email, dbUser.Role, GetCartIdsForUser(dbUser)));
+        }
+
+        private List<string> GetCartIdsForUser(User? user)
+        {
+            if (user is Customer customer)
+            {
+                return customer.Cart.GetAllItems()
+                    .SelectMany(item => Enumerable.Repeat(item.Id, item.Quantity))
+                    .ToList();
+            }
+            return new List<string>();
+        }
+
+        [Authorize]
+        [HttpPost("cart")]
+        public IActionResult SaveCart([FromBody] List<string> bookIds)
+        {
+            var email = User.Identity?.Name;
+            if (string.IsNullOrEmpty(email)) return Unauthorized();
+
+            var user = DatabaseConnector.GetInstance().GetUserByEmail(email);
+            if (user == null) return Unauthorized();
+
+            if (user is Customer customer)
+            {
+                customer.Cart.Clear();
+
+                List<Book> systemBooks = _bookstoreSystem.GetBooks();
+
+                foreach (var id in bookIds)
+                {
+                    var book = systemBooks.FirstOrDefault(b => b.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    if (book != null)
+                    {
+                        customer.Cart.AddItem(new Book
+                        {
+                            Id = book.Id,
+                            Name = book.Name,
+                            Price = book.Price,
+                            Stock = book.Stock,
+                            ISBN = book.ISBN,
+                            Author = book.Author,
+                            Publisher = book.Publisher,
+                            Genre = book.Genre,
+                            PublicationYear = book.PublicationYear,
+                            Status = book.Status,
+                            Quantity = 1
+                        });
+                    }
+                }
+
+                DatabaseConnector.GetInstance().SaveUser(customer);
+
+                // Sync the modified cart to the AccountManager singleton session user to prevent logout overwriting
+                var sessionUser = _bookstoreSystem.AccountManager.CurrentSessionUser;
+                if (sessionUser != null && sessionUser.Email.Equals(customer.Email, StringComparison.OrdinalIgnoreCase) && sessionUser is Customer sessionCustomer)
+                {
+                    sessionCustomer.Cart.Clear();
+                    foreach (var item in customer.Cart.GetAllItems())
+                    {
+                        sessionCustomer.Cart.AddItem(item);
+                    }
+                }
+
+                return Ok(new { message = "Cart synchronized successfully." });
+            }
+
+            return BadRequest(new { message = "Only registered customers can persist carts." });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            _bookstoreSystem.AccountManager.Logout();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok(new { message = "Logged out successfully." });
+        }
+
+        [Authorize]
         [HttpPost("checkout")]
         public IActionResult Checkout(CheckoutRequest request)
         {
-            if (request.Items.Count == 0)
-            {
-                return BadRequest(new { message = "Cart is empty." });
-            }
-
-            if (request.Address == null ||
-                string.IsNullOrWhiteSpace(request.Address.Street) ||
-                string.IsNullOrWhiteSpace(request.Address.Suburb) ||
-                string.IsNullOrWhiteSpace(request.Address.State) ||
-                string.IsNullOrWhiteSpace(request.Address.Postcode))
+            if (request.Items.Count == 0) return BadRequest(new { message = "Cart is empty." });
+            if (request.Address == null || !new Address { Street = request.Address.Street, Suburb = request.Address.Suburb, State = request.Address.State, Postcode = request.Address.Postcode }.IsValid())
             {
                 return BadRequest(new { message = "Shipping address is required before checkout." });
             }
+            if (request.Payment == null || string.IsNullOrWhiteSpace(request.Payment.Method)) return BadRequest(new { message = "Payment method is required before checkout." });
 
-            if (request.Payment == null || string.IsNullOrWhiteSpace(request.Payment.Method))
+            ShoppingCart cart = new ShoppingCart();
+            List<Book> systemBooks = _bookstoreSystem.GetBooks();
+
+            foreach (var item in request.Items)
             {
-                return BadRequest(new { message = "Payment method is required before checkout." });
+                Book? book = systemBooks.FirstOrDefault(b => b.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
+                if (book == null) return NotFound(new { message = $"Book {item.Id} was not found." });
+                if (item.Quantity <= 0) return BadRequest(new { message = "Item quantity must be greater than zero." });
+                if (book.Stock < item.Quantity) return BadRequest(new { message = $"Not enough stock for {book.Name}. Only {book.Stock} left." });
+
+                // We must use a copy or just use domain correctly. 
+                // The domain logic expects the book instance to be passed, but ShoppingCart accumulates quantity.
+                cart.AddItem(new Book { Id = book.Id, Name = book.Name, Price = book.Price, Quantity = item.Quantity });
             }
 
-            lock (FileLock)
+            Order? order = cart.CreateOrder(cart.GetAllItems());
+            if (order == null) return BadRequest(new { message = "Failed to create order." });
+
+            order.ShippingAddress = new Address { Street = request.Address.Street, Suburb = request.Address.Suburb, State = request.Address.State, Postcode = request.Address.Postcode };
+
+            PaymentMethod paymentMethod;
+            if (request.Payment.Method.Contains("PayPal", StringComparison.OrdinalIgnoreCase))
             {
-                List<BookDto> books = ReadBooksUnsafe();
-
-                foreach (CheckoutItem item in request.Items)
-                {
-                    BookDto? book = books.FirstOrDefault(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                    if (book == null)
-                    {
-                        return NotFound(new { message = $"Book {item.Id} was not found." });
-                    }
-
-                    if (item.Quantity <= 0)
-                    {
-                        return BadRequest(new { message = "Item quantity must be greater than zero." });
-                    }
-
-                    if (book.Stock < item.Quantity)
-                    {
-                        return BadRequest(new { message = $"Not enough stock for {book.Title}. Only {book.Stock} left." });
-                    }
-                }
-
-                decimal total = request.Items.Sum(item =>
-                {
-                    BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                    return book.Price * item.Quantity;
-                });
-
-                foreach (CheckoutItem item in request.Items)
-                {
-                    BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                    book.Stock -= item.Quantity;
-                }
-
-                WriteBooksUnsafe(books);
-
-                CheckoutInvoice invoice = new CheckoutInvoice(
-                    $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}",
-                    DateTime.UtcNow,
-                    request.Email,
-                    request.Address,
-                    request.Payment,
-                    request.Items.Select(item =>
-                    {
-                        BookDto book = books.First(existing => existing.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                        return new InvoiceLine(book.Id, book.Title, item.Quantity, book.Price, book.Price * item.Quantity);
-                    }).ToList(),
-                    total
-                );
-
-                return Ok(new CheckoutResponse("Order confirmed.", total, books, invoice));
+                paymentMethod = new PayPal { AccountEmail = request.Email ?? User.Identity?.Name ?? "" };
             }
-        }
-
-        private List<BookDto> ReadBooks()
-        {
-            lock (FileLock)
+            else
             {
-                return ReadBooksUnsafe();
+                paymentMethod = new Card { CardNumber = "4111111111111111", CVV = "123", CardholderName = request.Email ?? "Customer" }; // Mock card for demo
             }
-        }
 
-        private List<BookDto> ReadBooksUnsafe()
-        {
-            if (!System.IO.File.Exists(_booksPath)) return new List<BookDto>();
-            string json = System.IO.File.ReadAllText(_booksPath);
-            return string.IsNullOrWhiteSpace(json)
-                ? new List<BookDto>()
-                : JsonSerializer.Deserialize<List<BookDto>>(json, JsonOptions) ?? new List<BookDto>();
-        }
+            Invoice? invoiceResult;
+            try
+            {
+                invoiceResult = order.ProcessCheckout(paymentMethod);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
 
-        private void WriteBooksUnsafe(List<BookDto> books)
-        {
-            System.IO.File.WriteAllText(_booksPath, JsonSerializer.Serialize(books, JsonOptions));
-        }
+            if (invoiceResult == null) return BadRequest(new { message = "Payment processing failed." });
 
-        private List<WebsiteUserRecord> ReadUsersUnsafe()
-        {
-            if (!System.IO.File.Exists(_usersPath)) return new List<WebsiteUserRecord>();
-            string json = System.IO.File.ReadAllText(_usersPath);
-            return string.IsNullOrWhiteSpace(json)
-                ? new List<WebsiteUserRecord>()
-                : JsonSerializer.Deserialize<List<WebsiteUserRecord>>(json, JsonOptions) ?? new List<WebsiteUserRecord>();
-        }
+            // Deduct stock in system and save
+            foreach (var orderedItem in order.Items)
+            {
+                Book systemBook = systemBooks.First(b => b.Id == orderedItem.Id);
+                systemBook.ReduceStock(orderedItem.Quantity);
+            }
+            
+            _bookstoreSystem.SaveBooks();
 
-        private void WriteUsersUnsafe(List<WebsiteUserRecord> users)
-        {
-            System.IO.File.WriteAllText(_usersPath, JsonSerializer.Serialize(users, JsonOptions));
+            var finalBooksDto = _bookstoreSystem.GetCatalogueBooks().Select(book => new BookDto
+            {
+                Id = book.Id, ISBN = book.ISBN, Price = book.Price, Stock = book.Stock,
+                Title = book.Name, Author = book.Author, Genre = book.Genre, Publisher = book.Publisher
+            }).ToList();
+
+            var invoiceDto = new CheckoutInvoice(
+                invoiceResult.InvoiceId,
+                invoiceResult.DateIssued,
+                User.Identity?.Name,
+                request.Address,
+                request.Payment,
+                order.Items.Select(i => new InvoiceLine(i.Id, i.Name, i.Quantity, i.Price, i.Price * i.Quantity)).ToList(),
+                invoiceResult.TotalAmount
+            );
+
+            return Ok(new CheckoutResponse("Order confirmed.", invoiceResult.TotalAmount, finalBooksDto, invoiceDto));
         }
     }
 
@@ -228,7 +299,6 @@ namespace FavouriteBookstore.Controllers
         public string ISBN { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int Stock { get; set; }
-        // Keep both Title and Name for compatibility with frontend data shapes
         public string Title { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
@@ -238,19 +308,12 @@ namespace FavouriteBookstore.Controllers
 
     public record SignupRequest(string Name, string Email, string Password);
     public record LoginRequest(string Email, string Password);
-    public record WebsiteUserRecord(string Name, string Email, string PasswordHash, string Role);
-    public record UserDto(string Name, string Email, string Role);
+    public record UserDto(string Name, string Email, string Role, List<string>? Cart = null);
     public record CheckoutItem(string Id, int Quantity);
-
-    // Checkout payloads - include address and payment details
     public record CheckoutAddress(string Street, string Suburb, string State, string Postcode);
     public record CheckoutPayment(string Method);
     public record CheckoutRequest(string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
-
-    // Invoice types using decimal for monetary values
     public record InvoiceLine(string Id, string Title, int Quantity, decimal UnitPrice, decimal LineTotal);
     public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, decimal Total);
-
-    // Response includes computed total and generated invoice
     public record CheckoutResponse(string Message, decimal Total, List<BookDto> Books, CheckoutInvoice? Invoice);
 }

@@ -1,5 +1,6 @@
 [
   {
+    "$type": "Customer",
     "Name": "James Bond",
     "Email": "jamesbond@gmail.com",
     "PasswordHash": "JamesBon",

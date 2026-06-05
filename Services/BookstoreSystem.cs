@@ -1,4 +1,4 @@
-﻿using FavouriteBookstore.Data;
+using FavouriteBookstore.Data;
 using FavouriteBookstore.Models;
 using System;
 using System.Text.Json;
@@ -56,6 +56,12 @@ namespace FavouriteBookstore.Services
             books = db.GetAllBooks();
         }
 
+        public void SaveBooks()
+        {
+            DatabaseConnector db = DatabaseConnector.GetInstance();
+            db.SaveBooks(books);
+        }
+
         // Returns every book loaded from books.json.
         // This includes books that are NOT shown in the catalogue.
         public List<Book> GetBooks()
@@ -89,7 +95,7 @@ namespace FavouriteBookstore.Services
                     return true;
                 }
             }
-
+            // TODO: add error log
             // No matching book was found.
             return false;
         }

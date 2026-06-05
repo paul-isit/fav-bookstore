@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FavouriteBookstore.Models;
 
 namespace FavouriteBookstore.Data
@@ -8,13 +8,35 @@ namespace FavouriteBookstore.Data
         private static DatabaseConnector? _instance;
         private static readonly object _lock = new object();
         
-        // Path.Combine automatically maps appropriate cross-platform directory slashes
-        private readonly string _usersFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Infrastructure", "data", "users.json");
-        private readonly string _booksFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Infrastructure", "data", "books.json");
+        private readonly string _usersFilePath;
+        private readonly string _booksFilePath;
 
         private DatabaseConnector()
         {
+            string dbDir = GetDatabaseDirectory();
+            _usersFilePath = Path.Combine(dbDir, "users.json");
+            _booksFilePath = Path.Combine(dbDir, "books.json");
             InitializeStorageFiles();
+        }
+
+        private static string GetDatabaseDirectory()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            DirectoryInfo? dir = new DirectoryInfo(baseDir);
+            while (dir != null)
+            {
+                if (dir.GetFiles("*.csproj").Length > 0 || dir.GetDirectories("Infrastructure").Length > 0)
+                {
+                    string sourceDataPath = Path.Combine(dir.FullName, "Infrastructure", "data");
+                    if (Directory.Exists(sourceDataPath))
+                    {
+                        Console.WriteLine($"[Infrastructure] Found source database directory at: {sourceDataPath}");
+                        return sourceDataPath;
+                    }
+                }
+                dir = dir.Parent;
+            }
+            return Path.Combine(baseDir, "Infrastructure", "data");
         }
 
         public static DatabaseConnector GetInstance()
@@ -136,6 +158,24 @@ namespace FavouriteBookstore.Data
             {
                 Console.WriteLine($"[Error Handling] Failed to load books: {ex.Message}");
                 return new List<Book>();
+            }
+        }
+
+        public bool SaveBooks(List<Book> books)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    string updatedJson = JsonSerializer.Serialize(books, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(_booksFilePath, updatedJson);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Error Handling] Failed to persist books: {ex.Message}");
+                    return false;
+                }
             }
         }
     }

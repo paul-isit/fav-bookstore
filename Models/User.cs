@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.Json.Serialization; // Required for polymorphic JSON mapping
 
 namespace FavouriteBookstore.Models
@@ -20,10 +20,12 @@ namespace FavouriteBookstore.Models
         // The Factory Method pattern to dynamically instantiate profiles
         public static User? CreateUser(string email, string password, string name, string roleContext)
         {
+            string hashedPassword = string.IsNullOrWhiteSpace(password) ? "" : BCrypt.Net.BCrypt.HashPassword(password);
+            
             return roleContext.ToLower() switch
             {
-                "admin" => new Admin(email, password, name),
-                "customer" => new Customer(email, password, name),
+                "admin" => new Admin(email, hashedPassword, name),
+                "customer" => new Customer(email, hashedPassword, name),
                 "guest" => new Guest(email),
                 _ => null
             };
@@ -31,7 +33,15 @@ namespace FavouriteBookstore.Models
 
         public bool VerifyPassword(string inputPassword)
         {
-            return PasswordHash == inputPassword;
+            if (PasswordHash.StartsWith("$2"))
+            {
+                try {
+                    return BCrypt.Net.BCrypt.Verify(inputPassword, PasswordHash);
+                } catch {
+                    return false;
+                }
+            }
+            return PasswordHash == inputPassword; // Fallback for old plain-text data
         }
     }
 }

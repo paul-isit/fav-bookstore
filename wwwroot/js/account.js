@@ -27,7 +27,7 @@ async function apiRequest(path, options = {}) {
 }
 
 function saveSession(user) {
-  localStorage.setItem(sessionKey, JSON.stringify({
+  sessionStorage.setItem(sessionKey, JSON.stringify({
     name: user.name,
     email: user.email,
     role: user.role,
@@ -39,13 +39,20 @@ function normaliseUser(user) {
   return {
     name: user.name || user.Name || "Guest Shopper",
     email: user.email || user.Email || "",
-    role: user.role || user.Role || "Guest"
+    role: user.role || user.Role || "Guest",
+    cart: user.cart || user.Cart || []
   };
 }
 
+function syncCartFromUser(user) {
+  if (user && user.cart) {
+    sessionStorage.setItem("favouriteBooksCart", JSON.stringify(user.cart));
+  }
+}
+
 function renderHeaderState() {
-  const cart = JSON.parse(localStorage.getItem("favouriteBooksCart") || "[]");
-  const session = JSON.parse(localStorage.getItem(sessionKey) || "null");
+  const cart = JSON.parse(sessionStorage.getItem("favouriteBooksCart") || "[]");
+  const session = JSON.parse(sessionStorage.getItem(sessionKey) || "null");
 
   if (cartCount) cartCount.textContent = String(cart.length);
   if (!sessionStatus || !signOutButton || !loginLink || !signupLink) return;
@@ -66,8 +73,14 @@ function renderHeaderState() {
 }
 
 if (signOutButton) {
-  signOutButton.addEventListener("click", () => {
-    localStorage.removeItem(sessionKey);
+  signOutButton.addEventListener("click", async () => {
+    try {
+      await apiRequest("/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Failed to sign out from server:", err);
+    }
+    sessionStorage.removeItem(sessionKey);
+    sessionStorage.removeItem("favouriteBooksCart");
     renderHeaderState();
   });
 }
@@ -90,9 +103,10 @@ if (signupForm) {
       }));
 
       saveSession(user);
+      syncCartFromUser(user);
       message.textContent = `Account created. Welcome, ${user.name}. Redirecting...`;
       setTimeout(() => {
-        window.location.href = "index.html#catalogue";
+        window.location.href = "/#catalogue";
       }, 700);
     } catch (error) {
       message.textContent = error.message;
@@ -100,7 +114,22 @@ if (signupForm) {
   });
 }
 
-renderHeaderState();
+async function checkSessionOnLoad() {
+  const session = JSON.parse(sessionStorage.getItem(sessionKey) || "null");
+  if (session) {
+    try {
+      const user = normaliseUser(await apiRequest("/session"));
+      saveSession(user);
+      syncCartFromUser(user);
+    } catch (error) {
+      console.warn("Session is invalid or expired. Clearing local session.");
+      sessionStorage.removeItem(sessionKey);
+    }
+  }
+  renderHeaderState();
+}
+
+checkSessionOnLoad();
 
 if (loginForm) {
   const message = document.querySelector("#login-message");
@@ -119,9 +148,10 @@ if (loginForm) {
       }));
 
       saveSession(user);
+      syncCartFromUser(user);
       message.textContent = `Login successful. Welcome back, ${user.name}. Redirecting...`;
       setTimeout(() => {
-        window.location.href = "index.html#catalogue";
+        window.location.href = "/#catalogue";
       }, 700);
     } catch (error) {
       message.textContent = error.message;
@@ -138,9 +168,10 @@ if (guestButton) {
     try {
       const user = normaliseUser(await apiRequest("/guest", { method: "POST" }));
       saveSession(user);
+      syncCartFromUser(user);
       message.textContent = "Guest session started. Redirecting...";
       setTimeout(() => {
-        window.location.href = "index.html#catalogue";
+        window.location.href = "/#catalogue";
       }, 500);
     } catch (error) {
       message.textContent = error.message;

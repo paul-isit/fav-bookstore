@@ -47,8 +47,8 @@ const API_BASE = location.port === "5500" || location.port === "5501"
 
 const state = {
   books: [],
-  cart: JSON.parse(localStorage.getItem("favouriteBooksCart") || "[]"),
-  session: JSON.parse(localStorage.getItem("favouriteBooksSession") || "null")
+  cart: JSON.parse(sessionStorage.getItem("favouriteBooksCart") || "[]"),
+  session: JSON.parse(sessionStorage.getItem("favouriteBooksSession") || "null")
 };
 
 const money = new Intl.NumberFormat("en-AU", {
@@ -146,7 +146,45 @@ async function loadBooks() {
     renderBooks();
     renderCart();
     renderCartPreview();
-    renderSession();
+    await checkSessionOnLoad();
+}
+
+function normalizeUser(user) {
+  return {
+    name: user.name || user.Name || "Guest Shopper",
+    email: user.email || user.Email || "",
+    role: user.role || user.Role || "Guest",
+    cart: user.cart || user.Cart || []
+  };
+}
+
+async function checkSessionOnLoad() {
+  const session = JSON.parse(sessionStorage.getItem("favouriteBooksSession") || "null");
+  if (session) {
+    try {
+      const user = normalizeUser(await apiRequest("/session"));
+      sessionStorage.setItem("favouriteBooksSession", JSON.stringify({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        loggedInAt: new Date().toISOString()
+      }));
+      if (user.cart) {
+        sessionStorage.setItem("favouriteBooksCart", JSON.stringify(user.cart));
+        state.cart = user.cart;
+        renderCart();
+        renderCartPreview();
+      }
+    } catch (error) {
+      console.warn("Session is invalid or expired. Clearing local session.");
+      sessionStorage.removeItem("favouriteBooksSession");
+      sessionStorage.removeItem("favouriteBooksCart");
+      state.cart = [];
+      renderCart();
+      renderCartPreview();
+    }
+  }
+  renderSession();
 }
 
 function normalizeBooks(books) {
@@ -163,7 +201,7 @@ function normalizeBooks(books) {
 }
 
 function renderSession() {
-  state.session = JSON.parse(localStorage.getItem("favouriteBooksSession") || "null");
+  state.session = JSON.parse(sessionStorage.getItem("favouriteBooksSession") || "null");
 
   if (!sessionStatus || !signOutButton || !loginLink || !signupLink) return;
 
@@ -296,7 +334,13 @@ function setCartQuantity(bookId, quantity) {
 }
 
 function saveCart() {
-  localStorage.setItem("favouriteBooksCart", JSON.stringify(state.cart));
+  sessionStorage.setItem("favouriteBooksCart", JSON.stringify(state.cart));
+  if (state.session && state.session.role === "Customer") {
+    apiRequest("/cart", {
+      method: "POST",
+      body: JSON.stringify(state.cart)
+    }).catch(err => console.error("Failed to sync cart with server:", err));
+  }
 }
 
 function renderCart() {
@@ -522,10 +566,19 @@ if (checkoutButton && !checkoutForm) checkoutButton.addEventListener("click", ch
 if (checkoutForm) checkoutForm.addEventListener("submit", checkout);
 
 if (signOutButton) {
-  signOutButton.addEventListener("click", () => {
-    localStorage.removeItem("favouriteBooksSession");
+  signOutButton.addEventListener("click", async () => {
+    try {
+      await apiRequest("/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Failed to sign out from server:", err);
+    }
+    sessionStorage.removeItem("favouriteBooksSession");
+    sessionStorage.removeItem("favouriteBooksCart");
     state.session = null;
+    state.cart = [];
     renderSession();
+    renderCart();
+    renderCartPreview();
   });
 }
 
