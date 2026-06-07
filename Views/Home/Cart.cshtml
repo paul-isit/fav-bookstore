@@ -69,6 +69,15 @@
           <strong id="cart-total">$0.00</strong>
         </div>
         <form id="checkout-form" class="checkout-form">
+          <fieldset id="guest-info-fieldset">
+            <legend>Guest information</legend>
+            <label for="checkout-name">Full name</label>
+            <input id="checkout-name" name="guestName" type="text" placeholder="John Doe" />
+
+            <label for="checkout-email">Email address</label>
+            <input id="checkout-email" name="guestEmail" type="email" placeholder="john@example.com" />
+          </fieldset>
+
           <fieldset>
             <legend>Delivery address</legend>
             <label for="checkout-street">Street</label>

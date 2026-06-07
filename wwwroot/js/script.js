@@ -97,6 +97,7 @@ let catalogueMessageTimer;
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    credentials: "include",
     ...options
   });
 
@@ -203,6 +204,22 @@ function normalizeBooks(books) {
 
 function renderSession() {
   state.session = JSON.parse(sessionStorage.getItem("favouriteBooksSession") || "null");
+
+  const guestInfoFieldset = document.querySelector("#guest-info-fieldset");
+  const checkoutName = document.querySelector("#checkout-name");
+  const checkoutEmail = document.querySelector("#checkout-email");
+
+  if (guestInfoFieldset && checkoutName && checkoutEmail) {
+    if (state.session) {
+      guestInfoFieldset.hidden = true;
+      checkoutName.removeAttribute("required");
+      checkoutEmail.removeAttribute("required");
+    } else {
+      guestInfoFieldset.hidden = false;
+      checkoutName.setAttribute("required", "");
+      checkoutEmail.setAttribute("required", "");
+    }
+  }
 
   if (!sessionStatus || !signOutButton || !loginLink || !signupLink) return;
 
@@ -446,10 +463,12 @@ function renderCartPreview() {
 }
 
 function getCheckoutDetails() {
-  if (!checkoutForm) return { address: null, payment: null };
+  if (!checkoutForm) return { name: null, email: null, address: null, payment: null };
 
   const form = new FormData(checkoutForm);
   return {
+    name: form.get("guestName") ? String(form.get("guestName")).trim() : null,
+    email: form.get("guestEmail") ? String(form.get("guestEmail")).trim() : null,
     address: {
       street: String(form.get("street") || "").trim(),
       suburb: String(form.get("suburb") || "").trim(),
@@ -476,14 +495,19 @@ async function checkout(event) {
   try {
     if (checkoutMessage) checkoutMessage.textContent = "Processing checkout...";
     const checkoutDetails = getCheckoutDetails();
+
+    // Build the request payload
+    const payload = {
+      name: state.session?.name || checkoutDetails.name || null,
+      email: state.session?.email || checkoutDetails.email || null,
+      items: lines.map(line => ({ id: line.book.Id, quantity: line.quantity })),
+      address: checkoutDetails.address,
+      payment: checkoutDetails.payment
+    };
+
     const result = await apiRequest("/checkout", {
       method: "POST",
-      body: JSON.stringify({
-        email: state.session?.email || null,
-        items: lines.map(line => ({ id: line.book.Id, quantity: line.quantity })),
-        address: checkoutDetails.address,
-        payment: checkoutDetails.payment
-      })
+      body: JSON.stringify(payload)
     });
 
     state.books = normalizeBooks(result.books || result.Books || []);
@@ -512,7 +536,7 @@ function renderInvoice(invoice) {
   invoiceNumber.textContent = invoice.invoiceNumber || invoice.InvoiceNumber || "";
   invoiceCustomer.textContent = state.session
     ? `${state.session.name} (${state.session.email || state.session.role})`
-    : "Guest shopper";
+    : `${invoice.customerName || invoice.CustomerName || "Guest Shopper"} (${invoice.email || invoice.Email || "Guest"})`;
   invoicePayment.textContent = payment.method || payment.Method || "Payment";
   invoiceAddress.textContent = [
     address.street || address.Street,

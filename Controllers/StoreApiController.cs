@@ -211,16 +211,37 @@ namespace FavouriteBookstore.Controllers
             return Ok(new { message = "Logged out successfully." });
         }
 
-        [Authorize]
         [HttpPost("checkout")]
         public IActionResult Checkout(CheckoutRequest request)
         {
-            if (request.Items.Count == 0) return BadRequest(new { message = "Cart is empty." });
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return BadRequest(new { message = "Cart is empty." });
+            }
+
             if (request.Address == null || !new Address { Street = request.Address.Street, Suburb = request.Address.Suburb, State = request.Address.State, Postcode = request.Address.Postcode }.IsValid())
             {
                 return BadRequest(new { message = "Shipping address is required before checkout." });
             }
-            if (request.Payment == null || string.IsNullOrWhiteSpace(request.Payment.Method)) return BadRequest(new { message = "Payment method is required before checkout." });
+
+            if (request.Payment == null || string.IsNullOrWhiteSpace(request.Payment.Method))
+            {
+                return BadRequest(new { message = "Payment method is required before checkout." });
+            }
+
+            // If user is NOT authenticated (a raw Guest shopper), require them to provide Name and Email in the form
+            bool isAuthenticated = User.Identity?.IsAuthenticated == true;
+            if (!isAuthenticated)
+            {
+                if (string.IsNullOrWhiteSpace(request.Name))
+                {
+                    return BadRequest(new { message = "Guest name is required before checkout." });
+                }
+                if (string.IsNullOrWhiteSpace(request.Email))
+                {
+                    return BadRequest(new { message = "Guest email is required before checkout." });
+                }
+            }
 
             ShoppingCart cart = new ShoppingCart();
             List<Book> systemBooks = _bookstoreSystem.GetBooks();
@@ -228,28 +249,41 @@ namespace FavouriteBookstore.Controllers
             foreach (var item in request.Items)
             {
                 Book? book = systemBooks.FirstOrDefault(b => b.Id.Equals(item.Id, StringComparison.OrdinalIgnoreCase));
-                if (book == null) return NotFound(new { message = $"Book {item.Id} was not found." });
-                if (item.Quantity <= 0) return BadRequest(new { message = "Item quantity must be greater than zero." });
-                if (book.Stock < item.Quantity) return BadRequest(new { message = $"Not enough stock for {book.Name}. Only {book.Stock} left." });
+                if (book == null)
+                {
+                    return NotFound(new { message = $"Book {item.Id} was not found." });
+                }
+                if (item.Quantity <= 0)
+                {
+                    return BadRequest(new { message = "Item quantity must be greater than zero." });
+                }
+                if (book.Stock < item.Quantity)
+                {
+                    return BadRequest(new { message = $"Not enough stock for {book.Name}. Only {book.Stock} left." });
+                }
 
-                // We must use a copy or just use domain correctly. 
-                // The domain logic expects the book instance to be passed, but ShoppingCart accumulates quantity.
                 cart.AddItem(new Book { Id = book.Id, Name = book.Name, Price = book.Price, Quantity = item.Quantity });
             }
 
             Order? order = cart.CreateOrder(cart.GetAllItems());
-            if (order == null) return BadRequest(new { message = "Failed to create order." });
+            if (order == null)
+            {
+                return BadRequest(new { message = "Failed to create order." });
+            }
 
             order.ShippingAddress = new Address { Street = request.Address.Street, Suburb = request.Address.Suburb, State = request.Address.State, Postcode = request.Address.Postcode };
 
             PaymentMethod paymentMethod;
+            string payerEmail = request.Email ?? User.Identity?.Name ?? "";
+            string payerName = request.Name ?? User.Identity?.Name ?? "Guest Shopper";
+
             if (request.Payment.Method.Contains("PayPal", StringComparison.OrdinalIgnoreCase))
             {
-                paymentMethod = new PayPal { AccountEmail = request.Email ?? User.Identity?.Name ?? "" };
+                paymentMethod = new PayPal { AccountEmail = payerEmail };
             }
             else
             {
-                paymentMethod = new Card { CardNumber = "4111111111111111", CVV = "123", CardholderName = request.Email ?? "Customer" }; // Mock card for demo
+                paymentMethod = new Card { CardNumber = "4111111111111111", CVV = "123", CardholderName = payerName }; // Mock card for demo
             }
 
             Invoice? invoiceResult;
@@ -262,7 +296,10 @@ namespace FavouriteBookstore.Controllers
                 return BadRequest(new { message = ex.Message });
             }
 
-            if (invoiceResult == null) return BadRequest(new { message = "Payment processing failed." });
+            if (invoiceResult == null)
+            {
+                return BadRequest(new { message = "Payment processing failed." });
+            }
 
             // Deduct stock in system and save
             foreach (var orderedItem in order.Items)
@@ -282,7 +319,8 @@ namespace FavouriteBookstore.Controllers
             var invoiceDto = new CheckoutInvoice(
                 invoiceResult.InvoiceId,
                 invoiceResult.DateIssued,
-                User.Identity?.Name,
+                payerName,
+                payerEmail,
                 request.Address,
                 request.Payment,
                 order.Items.Select(i => new InvoiceLine(i.Id, i.Name, i.Quantity, i.Price, i.Price * i.Quantity)).ToList(),
@@ -312,8 +350,8 @@ namespace FavouriteBookstore.Controllers
     public record CheckoutItem(string Id, int Quantity);
     public record CheckoutAddress(string Street, string Suburb, string State, string Postcode);
     public record CheckoutPayment(string Method);
-    public record CheckoutRequest(string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
+    public record CheckoutRequest(string? Name, string? Email, List<CheckoutItem> Items, CheckoutAddress? Address, CheckoutPayment? Payment);
     public record InvoiceLine(string Id, string Title, int Quantity, decimal UnitPrice, decimal LineTotal);
-    public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, decimal Total);
+    public record CheckoutInvoice(string InvoiceNumber, DateTime IssuedAt, string? CustomerName, string? Email, CheckoutAddress Address, CheckoutPayment Payment, List<InvoiceLine> Items, decimal Total);
     public record CheckoutResponse(string Message, decimal Total, List<BookDto> Books, CheckoutInvoice? Invoice);
 }

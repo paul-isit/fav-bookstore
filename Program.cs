@@ -21,9 +21,10 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy
-        .AllowAnyOrigin()
+        .WithOrigins("http://localhost:5500", "http://localhost:5501", "http://localhost:3000", "http://localhost:5173")
         .AllowAnyHeader()
-        .AllowAnyMethod());
+        .AllowAnyMethod()
+        .AllowCredentials());
 });
 
 builder.Services.AddAuthentication("Cookies")
