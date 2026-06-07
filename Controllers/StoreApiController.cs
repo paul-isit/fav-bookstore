@@ -229,9 +229,9 @@ namespace FavouriteBookstore.Controllers
                 return BadRequest(new { message = "Payment method is required before checkout." });
             }
 
-            // If user is NOT authenticated (a raw Guest shopper), require them to provide Name and Email in the form
-            bool isAuthenticated = User.Identity?.IsAuthenticated == true;
-            if (!isAuthenticated)
+            // If user is a Guest (unauthenticated or in Guest role), require them to provide Name and Email in the form
+            bool isGuest = User.Identity?.IsAuthenticated != true || User.IsInRole("Guest");
+            if (isGuest)
             {
                 if (string.IsNullOrWhiteSpace(request.Name))
                 {
@@ -274,8 +274,8 @@ namespace FavouriteBookstore.Controllers
             order.ShippingAddress = new Address { Street = request.Address.Street, Suburb = request.Address.Suburb, State = request.Address.State, Postcode = request.Address.Postcode };
 
             PaymentMethod paymentMethod;
-            string payerEmail = request.Email ?? User.Identity?.Name ?? "";
-            string payerName = request.Name ?? User.Identity?.Name ?? "Guest Shopper";
+            string payerEmail = (isGuest ? request.Email : (User.Identity?.Name ?? request.Email)) ?? "";
+            string payerName = (isGuest ? request.Name : (User.Identity?.Name ?? request.Name)) ?? "Guest Shopper";
 
             if (request.Payment.Method.Contains("PayPal", StringComparison.OrdinalIgnoreCase))
             {

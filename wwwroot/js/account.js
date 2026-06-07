@@ -46,7 +46,7 @@ function normaliseUser(user) {
 }
 
 function syncCartFromUser(user) {
-  if (user && user.cart) {
+  if (user && user.cart && user.role !== "Guest") {
     sessionStorage.setItem("favouriteBooksCart", JSON.stringify(user.cart));
   }
 }

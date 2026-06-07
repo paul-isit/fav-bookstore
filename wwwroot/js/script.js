@@ -171,7 +171,7 @@ async function checkSessionOnLoad() {
         role: user.role,
         loggedInAt: new Date().toISOString()
       }));
-      if (user.cart) {
+      if (user.cart && user.role !== "Guest") {
         sessionStorage.setItem("favouriteBooksCart", JSON.stringify(user.cart));
         state.cart = user.cart;
         renderCart();
@@ -210,7 +210,7 @@ function renderSession() {
   const checkoutEmail = document.querySelector("#checkout-email");
 
   if (guestInfoFieldset && checkoutName && checkoutEmail) {
-    if (state.session) {
+    if (state.session && state.session.role !== "Guest") {
       guestInfoFieldset.hidden = true;
       checkoutName.removeAttribute("required");
       checkoutEmail.removeAttribute("required");
@@ -497,9 +497,10 @@ async function checkout(event) {
     const checkoutDetails = getCheckoutDetails();
 
     // Build the request payload
+    const isGuest = !state.session || state.session.role === "Guest";
     const payload = {
-      name: state.session?.name || checkoutDetails.name || null,
-      email: state.session?.email || checkoutDetails.email || null,
+      name: isGuest ? (checkoutDetails.name || "Guest Shopper") : (state.session.name || null),
+      email: isGuest ? (checkoutDetails.email || null) : (state.session.email || null),
       items: lines.map(line => ({ id: line.book.Id, quantity: line.quantity })),
       address: checkoutDetails.address,
       payment: checkoutDetails.payment
@@ -534,9 +535,10 @@ function renderInvoice(invoice) {
   const total = invoice.total ?? invoice.Total ?? 0;
 
   invoiceNumber.textContent = invoice.invoiceNumber || invoice.InvoiceNumber || "";
-  invoiceCustomer.textContent = state.session
-    ? `${state.session.name} (${state.session.email || state.session.role})`
-    : `${invoice.customerName || invoice.CustomerName || "Guest Shopper"} (${invoice.email || invoice.Email || "Guest"})`;
+  const isGuest = !state.session || state.session.role === "Guest";
+  invoiceCustomer.textContent = isGuest
+    ? `${invoice.customerName || invoice.CustomerName || "Guest Shopper"} (${invoice.email || invoice.Email || "Guest"})`
+    : `${state.session.name} (${state.session.email || state.session.role})`;
   invoicePayment.textContent = payment.method || payment.Method || "Payment";
   invoiceAddress.textContent = [
     address.street || address.Street,
