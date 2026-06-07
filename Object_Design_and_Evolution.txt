@@ -1,0 +1,159 @@
+================================================================================
+SWE30003 - Software Architectures and Design (Semester 1, 2026)
+Assignment 3: Object Design Implementation and Reflection
+Section 1: Object Design & Evolution Report
+================================================================================
+
+This report documents the evolution and transformation of our conceptual models 
+from our Assignment 2 Object Design into the finalized, physical C# source files 
+and integrated frontend environment.
+
+================================================================================
+1. Changes to Class Structure
+================================================================================
+
+*   **Addition of AccountManager**
+    In our original conceptual class diagram (as defined in Assignment 2 and 
+    illustrated in 'clipboard-1780389368101.png'), the central 'BookstoreSystem' 
+    served as our single monolithic controller/facade. During the physical 
+    implementation, we separated session and authentication duties by introducing 
+    a dedicated 'AccountManager' service class ('Services/AccountManager.cs') 
+    to track the currently active authenticated user ('CurrentSessionUser').
+    
+    *   *Software Engineering Justification*: This change directly follows the 
+        Single Responsibility Principle (SRP) and design heuristic H3 (Avoidance 
+        of "God Classes"). Rather than overloading 'BookstoreSystem' with session 
+        states and login routines, the 'AccountManager' takes sole responsibility 
+        for credentials and active session states, keeping our central system clean.
+
+*   **Addition of IShopper Class (Interface)**
+    In our physical C# backend, we created a new contract interface, 'IShopper' 
+    ('Models/IShopper.cs'), which defines a mandatory 'GetCart()' method contract. 
+    This interface was not included in our Assignment 2 design and represents a major 
+    structural refinement.
+    
+    *   *Software Engineering Justification*: This satisfies design heuristic H2 
+        (Low Coupling) and supports Polymorphism. By having our 'Customer' class 
+        implement the 'IShopper' interface, our API routing controllers are completely 
+        decoupled from concrete user subclasses. If we expand the bookstore tomorrow 
+        to include VIP members or corporate profiles, they can all cleanly implement 
+        'IShopper', allowing checkout routines to handle them identically without 
+        modifying any core checkout code.
+
+*   **MVC Project Structure**
+    We organized our final solution following the Model-View-Controller (MVC) 
+    architectural pattern to separate our business data, viewing interfaces, and routing.
+    
+    *   **Including Controllers**: We separated HTTP protocol handling from our backend 
+        services by introducing 'StoreApiController' ('Controllers/StoreApiController.cs') 
+        to expose REST API endpoints ('api/books', 'api/signup', 'api/login', 
+        'api/guest', and 'api/checkout') using standard ASP.NET attributes, alongside 
+        'HomeController' to manage basic multi-page static view serving.
+    *   **Front End Implementation**: We integrated our multi-page static HTML/CSS/JS 
+        assets inside the 'website/' directory. This folder is dynamically served 
+        as static files under the '/website' request path via a custom file provider 
+        setup inside 'Program.cs'.
+
+*   **Non-Changes (Classes Staying Exactly as Planned in Assignment 2)**
+    Several classes were implemented exactly as designed in our Assignment 2 layout:
+    
+    *   **Item and Book classes**: The abstract 'Item' and concrete 'Book' subclasses 
+        stayed exactly the same, preserving their planned metadata properties 
+        (ID, Price, Stock, ISBN, Author, Publisher, Genre, and Synopsis).
+    *   **Invoice class**: Acted exactly as our planned lightweight data-holder, 
+        maintaining properties for 'InvoiceId', 'DateIssued', 'OrderReference', 
+        and 'TotalAmount'.
+    *   **DatabaseConnector class**: Remained our single global Singleton class to 
+        serve as our data retrieval connector, though adapted to parse text-based 
+        JSON storage files.
+
+================================================================================
+2. Changes to Relationships and Collaborators
+================================================================================
+
+*   **Evolution of the Checkout Process (Order Control of Address)**
+    In our Assignment 2 class diagram, 'Order' collaborated with 'Address' strictly 
+    as a passive data-holder. In our actual implementation, the 'Order' class 
+    takes active control over shipping validation. It requires a valid 'Address' 
+    collaborator to pass its '.IsValid()' check before 'ProcessCheckout()' is 
+    allowed to proceed, throwing an exception if address attributes are incomplete.
+    
+    *   *Software Engineering Justification*: This represents Defensive Programming. 
+        Ensuring shipping completeness directly within the checkout's parent object 
+        prevents incomplete or invalid orders from being processed.
+
+*   **Introduction of APIs (Request/Response Data Records)**
+    To support clean API interactions, we introduced several specialized C# record types 
+    and data transfer objects (DTOs) inside our API controller, including 'BookDto', 
+    'SignupRequest', 'LoginRequest', 'UserDto', and 'CheckoutRequest'. These attributes 
+    and structures were not defined in our Assignment 2 design.
+    
+    *   *Software Engineering Justification*: This ensures secure and isolated 
+        communications. Passing lightweight data records between the frontend and the 
+        backend instead of raw domain entities prevents sensitive attributes (such as 
+        password hashes) from being exposed over the network, protecting database 
+        integrity.
+
+*   **User Authentication in AccountManager**
+    In Assignment 2, password verification and duplicate checking were expected to 
+    be managed directly inside user subclasses. In our implementation, the 
+    'StoreApiController' delegates authentication to 'AccountManager', which 
+    queries the database connector, verifies credentials, and dynamically invokes the 
+    polymorphic 'User.CreateUser' Factory Method to set up the session user.
+    
+    *   *Software Engineering Justification*: This maintains our original 'User' class 
+        Factory Method collaboration designed in Assignment 2, but adapts it to cleanly 
+        process web-based requests without exposing database connectors directly 
+        to model subclasses.
+
+*   **Non-Changes (Examples of Relationships Staying Exactly as Planned)**
+    *   **Customer and ShoppingCart Ownership**: The 'Customer' class continues 
+        to strictly own and maintain its own dedicated 'ShoppingCart' association, 
+        matching our planned UML multiplicities.
+    *   **Order and Invoice Generation**: A successful 'Order.ProcessCheckout()' 
+        continues to directly instantiate and return a new 'Invoice' object, 
+        preserving their designed collaboration.
+    *   **User Subclasses Hierarchy**: 'Customer', 'Admin', and 'Guest' inherit 
+        exactly from the abstract 'User' class as designed in our original plans.
+
+================================================================================
+3. Changes to Runtime Behaviour
+================================================================================
+
+*   **Evolved Bootstrap Process**
+    In this context, **"Bootstrap"** refers to the very first sequence of events 
+    when the application starts up—how it initializes, registers components, and prepares 
+    subsystems for active user connections.
+    
+    The following step-by-step sequence details our current dynamic bootstrap process 
+    with changes and non-changes clearly marked:
+    
+    1.  **[Non-Change]** The application initializes and accesses the central 
+        'BookstoreSystem' singleton instance.
+    2.  **[Change]** The server spins up an ASP.NET Core web host using 'Program.cs' 
+        and reads environment configuration files.
+    3.  **[Non-Change]** 'BookstoreSystem' instantiates our shared 
+        'DatabaseConnector' singleton to gain access to stored user and catalogue files.
+    4.  **[Change]** The server registers the 'BookstoreSystem' singleton and its 
+        associated services inside the ASP.NET Dependency Injection container to make 
+        them accessible across web requests.
+    5.  **[Change]** The server sets up static file routing rules (CORS) and configures 
+        a custom 'PhysicalFileProvider' to serve our static '/website' folder.
+    6.  **[Non-Change]** The system populates the initial 'Catalogue' with available 
+        book objects retrieved from storage files.
+
+*   **Evolved Shopping Cart Behaviour**
+    We evolved our shopping cart interaction into a highly optimized, client-server 
+    distributed shopping cart lifecycle:
+    
+    *   **Client-Side Interactivity**: Cart modifications (adding books and changing 
+        quantities) run entirely client-side on the user's browser via 'script.js'. 
+        It caches selections inside browser storage ('localStorage') so page refreshes 
+        don't lose the cart. This keeps browsing responsive and fast, satisfying 
+        our performance requirement of sub-2-second catalogue loading.
+    *   **Server-Side Verification**: When the customer clicks "Checkout", 'script.js' 
+        sends a JSON-serialized list of items to the server's 'api/checkout' endpoint. 
+        On the backend, the JSON payload is read and handled directly using the server's 
+        C# **'ShoppingCart'** and **'Order'** classes to safely reduce stock levels 
+        and finalize the invoice, ensuring robust transactional boundaries.
+================================================================================
